@@ -222,3 +222,70 @@ jobs:
           JS
           cd /tmp
           node /tmp/capture-bulario-ui.mjs
+
+
+      - name: Capture Bulário query by registration number
+        shell: bash
+        run: |
+          cat > /tmp/capture-by-registration.mjs <<'JS'
+          import { chromium } from 'playwright';
+
+          const browser = await chromium.launch({
+            headless: true,
+            args: ['--disable-blink-features=AutomationControlled'],
+          });
+          const context = await browser.newContext({
+            userAgent:
+              'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 ' +
+              '(KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
+          });
+          const page = await context.newPage();
+          const events = [];
+          page.on('request', (request) => {
+            if (request.url().includes('/api/consulta/')) {
+              events.push({
+                type: 'request',
+                method: request.method(),
+                url: request.url(),
+                postData: request.postData(),
+              });
+            }
+          });
+          page.on('response', (response) => {
+            if (response.url().includes('/api/consulta/')) {
+              events.push({
+                type: 'response',
+                status: response.status(),
+                url: response.url(),
+              });
+            }
+          });
+
+          await page.goto('https://consultas.anvisa.gov.br/#/bulario/', {
+            waitUntil: 'networkidle',
+            timeout: 120000,
+          });
+          await page.waitForTimeout(3000);
+
+          await page.locator('#txtNumeroRegistro').fill('103460005');
+          console.log(
+            'REGISTRATION_VALUE',
+            await page.locator('#txtNumeroRegistro').inputValue(),
+          );
+
+          const submit = page.locator('input[type="submit"]').first();
+          console.log('SUBMIT_COUNT', await submit.count());
+          if (await submit.count()) {
+            await submit.click();
+            await page.waitForTimeout(10000);
+          }
+
+          console.log('REGISTRATION_API_EVENTS', JSON.stringify(events, null, 2));
+          console.log(
+            'REGISTRATION_RESULT_TEXT',
+            (await page.locator('body').innerText()).slice(0, 16000),
+          );
+          await browser.close();
+          JS
+          cd /tmp
+          node /tmp/capture-by-registration.mjs
