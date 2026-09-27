@@ -588,3 +588,147 @@ jobs:
           JS
           cd /tmp
           node /tmp/capture-rendered-leaflet.mjs
+
+
+      - name: Download professional leaflet from UI response token
+        shell: bash
+        run: |
+          cat > /tmp/download-ui-token-leaflet.mjs <<'JS'
+          import { chromium } from 'playwright';
+          import fs from 'node:fs';
+
+          const browser = await chromium.launch({
+            headless: true,
+            args: ['--disable-blink-features=AutomationControlled'],
+          });
+          const context = await browser.newContext({
+            userAgent:
+              'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 ' +
+              '(KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
+          });
+          const page = await context.newPage();
+          await page.goto('https://consultas.anvisa.gov.br/#/bulario/', {
+            waitUntil: 'networkidle',
+            timeout: 120000,
+          });
+          await page.waitForTimeout(2500);
+          await page.locator('#txtNumeroRegistro').fill('103460005');
+
+          const responsePromise = page.waitForResponse(
+            (response) =>
+              response.url().includes('/api/consulta/bulario?') &&
+              response.status() === 200,
+            { timeout: 30000 },
+          );
+          await page.locator('input[type="submit"]').first().click();
+          const searchResponse = await responsePromise;
+          const result = await searchResponse.json();
+          const item = result.content?.[0];
+          const token = item?.idBulaProfissionalProtegido;
+          console.log('TOKEN_FLOW_HAS_TOKEN', Boolean(token));
+          if (!token) {
+            await browser.close();
+            process.exit(0);
+          }
+
+          const linkResult = await page.evaluate(async (protectedId) => {
+            const response = await fetch(
+              '/api/consulta/medicamentos/arquivo/bula/parecer/' +
+                encodeURIComponent(protectedId) +
+                '/',
+              {
+                headers: {
+                  Accept: 'application/json, text/plain, */*',
+                },
+                credentials: 'include',
+              },
+            );
+            return {
+              status: response.status,
+              contentType: response.headers.get('content-type'),
+              text: await response.text(),
+            };
+          }, token);
+          console.log('TOKEN_FLOW_LINK_STATUS', linkResult.status);
+          console.log('TOKEN_FLOW_LINK_TYPE', linkResult.contentType);
+          if (linkResult.status !== 200) {
+            console.log('TOKEN_FLOW_LINK_ERROR', linkResult.text.slice(0, 1200));
+            await browser.close();
+            process.exit(0);
+          }
+
+          let link;
+          try {
+            const decoded = JSON.parse(linkResult.text);
+            link =
+              typeof decoded === 'string'
+                ? decoded
+                : (decoded.link ?? decoded.url ?? decoded.path);
+          } catch {
+            link = linkResult.text.replace(/^"|"$/g, '').trim();
+          }
+          console.log('TOKEN_FLOW_LINK_PRESENT', Boolean(link));
+          if (!link) {
+            await browser.close();
+            process.exit(0);
+          }
+
+          const resolved = new URL(link, 'https://consultas.anvisa.gov.br/');
+          console.log('TOKEN_FLOW_LINK_HOST', resolved.host);
+          console.log('TOKEN_FLOW_LINK_PATH', resolved.pathname.slice(0, 120));
+
+          const pdfResult = await page.evaluate(async (url) => {
+            const response = await fetch(url, { credentials: 'include' });
+            const bytes = new Uint8Array(await response.arrayBuffer());
+            let binary = '';
+            const chunkSize = 0x8000;
+            for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+              binary += String.fromCharCode(
+                ...bytes.subarray(offset, Math.min(bytes.length, offset + chunkSize)),
+              );
+            }
+            return {
+              status: response.status,
+              contentType: response.headers.get('content-type'),
+              base64: btoa(binary),
+            };
+          }, resolved.toString());
+
+          const body = Buffer.from(pdfResult.base64, 'base64');
+          console.log('TOKEN_FLOW_PDF_STATUS', pdfResult.status);
+          console.log('TOKEN_FLOW_PDF_TYPE', pdfResult.contentType);
+          console.log('TOKEN_FLOW_PDF_BYTES', body.length);
+          console.log('TOKEN_FLOW_PDF_MAGIC', body.subarray(0, 8).toString('latin1'));
+          if (
+            pdfResult.status === 200 &&
+            body.subarray(0, 4).toString('latin1') === '%PDF'
+          ) {
+            fs.writeFileSync('/tmp/token_professional_leaflet.pdf', body);
+          }
+          await browser.close();
+          JS
+          cd /tmp
+          node /tmp/download-ui-token-leaflet.mjs
+          if [ -f /tmp/token_professional_leaflet.pdf ]; then
+            python3 -m pip install --quiet 'pypdf>=5,<7'
+            python3 - <<'PY'
+          from pypdf import PdfReader
+          reader=PdfReader("/tmp/token_professional_leaflet.pdf")
+          text="\n".join((page.extract_text() or "") for page in reader.pages)
+          upper=text.upper()
+          print("TOKEN_PDF_PAGES", len(reader.pages))
+          print("TOKEN_PDF_TEXT_CHARS", len(text))
+          print("TOKEN_PDF_HEADINGS", [
+              heading for heading in (
+                  "INDICAÇÕES",
+                  "CONTRAINDICAÇÕES",
+                  "ADVERTÊNCIAS E PRECAUÇÕES",
+                  "INTERAÇÕES MEDICAMENTOSAS",
+                  "POSOLOGIA E MODO DE USAR",
+                  "REAÇÕES ADVERSAS",
+                  "SUPERDOSE",
+              ) if heading in upper
+          ])
+          print("TOKEN_PDF_PREFIX", repr(text[:1800]))
+          PY
+          fi
