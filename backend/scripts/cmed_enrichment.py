@@ -142,7 +142,7 @@ def _dosage_form_code(name: str) -> str:
 
 def _latest_xlsx_url(page_html: str) -> str:
     candidates = re.findall(
-        r'href=["\']([^"\']*xls_conformidade_site_[^"\']+\.xlsx)["\']',
+        r'href=["\']([^"\']*xls_conformidade_site_[^"\']*\.xlsx[^"\']*)["\']',
         page_html,
         flags=re.IGNORECASE,
     )
