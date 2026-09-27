@@ -53,12 +53,6 @@ jobs:
       - name: Apply Dart formatting
         run: dart format lib test
 
-      - name: Static analysis
-        run: flutter analyze --fatal-infos --fatal-warnings
-
-      - name: Run mobile and clinical tests
-        run: flutter test --reporter expanded
-
       - name: Commit formatter output on main
         if: github.event_name == 'push'
         working-directory: .
@@ -72,3 +66,9 @@ jobs:
           git add mobile/lib mobile/test
           git commit -m "style: apply dart format for cycle 8"
           git push origin HEAD:main
+
+      - name: Static analysis
+        run: flutter analyze --fatal-infos --fatal-warnings
+
+      - name: Run mobile and clinical tests
+        run: flutter test --reporter expanded
