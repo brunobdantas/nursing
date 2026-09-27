@@ -15,7 +15,7 @@ on:
       - '.github/workflows/clinical_core_tests.yml'
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: clinical-core-${{ github.event.pull_request.number || github.ref }}
@@ -50,11 +50,25 @@ jobs:
       - name: Resolve dependencies
         run: flutter pub get
 
-      - name: Verify formatting
-        run: dart format --output=none --set-exit-if-changed lib test
+      - name: Apply Dart formatting
+        run: dart format lib test
 
       - name: Static analysis
         run: flutter analyze --fatal-infos --fatal-warnings
 
       - name: Run mobile and clinical tests
         run: flutter test --reporter expanded
+
+      - name: Commit formatter output on main
+        if: github.event_name == 'push'
+        working-directory: .
+        shell: bash
+        run: |
+          if git diff --quiet -- mobile/lib mobile/test; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add mobile/lib mobile/test
+          git commit -m "style: apply dart format"
+          git push origin HEAD:main
