@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import hashlib
+import json
 import unicodedata
 from collections.abc import AsyncIterator
+from datetime import datetime, timezone
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 from sqlalchemy.orm import selectinload
@@ -21,6 +24,10 @@ from app.api.schemas import (
     SearchEntityType,
     SearchMatchType,
     SearchResult,
+    SyncActiveIngredient,
+    SyncContentResponse,
+    SyncMedicationProduct,
+    SyncPresentation,
 )
 from app.db.models import (
     ActiveIngredient,
@@ -192,6 +199,193 @@ async def search_medications(
         query=q,
         items=items,
         returned=len(items),
+    )
+
+
+@router.get(
+    "/sync/content",
+    response_model=SyncContentResponse,
+    tags=["sync"],
+    summary="Dump clínico versionado para uso offline",
+)
+async def get_sync_content(
+    session: DbSession,
+    request: Request,
+    response: Response,
+) -> SyncContentResponse | Response:
+    """
+    Return the complete active clinical release used by the offline-first app.
+
+    The content version is a deterministic hash of the clinical payload. Clients
+    send it back through If-None-Match; unchanged releases return HTTP 304 without
+    re-downloading the JSON body.
+    """
+
+    ingredient_stmt = (
+        select(ActiveIngredient)
+        .where(ActiveIngredient.is_active.is_(True))
+        .order_by(ActiveIngredient.normalized_name, ActiveIngredient.id)
+    )
+    product_stmt = (
+        select(MedicationProduct)
+        .where(MedicationProduct.is_active.is_(True))
+        .options(
+            selectinload(MedicationProduct.ingredient_links).selectinload(
+                MedicationProductIngredient.active_ingredient
+            ),
+            selectinload(MedicationProduct.presentations).selectinload(
+                Presentation.dosage_form
+            ),
+            selectinload(MedicationProduct.presentations)
+            .selectinload(Presentation.route_links)
+            .selectinload(PresentationRoute.route),
+        )
+        .order_by(MedicationProduct.normalized_generic_name, MedicationProduct.id)
+    )
+
+    ingredients = list((await session.scalars(ingredient_stmt)).all())
+    products = list((await session.scalars(product_stmt)).unique().all())
+
+    sync_ingredients = [
+        SyncActiveIngredient(
+            id=ingredient.id,
+            canonical_name=ingredient.canonical_name,
+            normalized_name=ingredient.normalized_name,
+            atc_code=ingredient.atc_code,
+        )
+        for ingredient in ingredients
+    ]
+
+    sync_medications: list[SyncMedicationProduct] = []
+    sync_presentations: list[SyncPresentation] = []
+
+    for product in products:
+        ingredient_ids = [
+            link.active_ingredient.id
+            for link in sorted(
+                product.ingredient_links,
+                key=lambda link: link.sequence_order,
+            )
+            if link.active_ingredient.is_active
+        ]
+        sync_medications.append(
+            SyncMedicationProduct(
+                id=product.id,
+                brand_name=product.brand_name,
+                normalized_brand_name=product.normalized_brand_name,
+                generic_name=product.generic_name,
+                normalized_generic_name=product.normalized_generic_name,
+                anvisa_registration_number=product.anvisa_registration_number,
+                manufacturer_name=product.manufacturer_name,
+                regulatory_status=product.regulatory_status,
+                active_ingredient_ids=ingredient_ids,
+            )
+        )
+
+        for presentation in sorted(
+            (item for item in product.presentations if item.is_active),
+            key=lambda item: (item.description.casefold(), str(item.id)),
+        ):
+            concentration_complete = all(
+                value is not None
+                for value in (
+                    presentation.concentration_value,
+                    presentation.concentration_unit,
+                    presentation.concentration_denominator_value,
+                    presentation.concentration_denominator_unit,
+                )
+            )
+            concentration: ConcentrationData | None = None
+            if concentration_complete:
+                concentration = ConcentrationData(
+                    numerator_value=presentation.concentration_value,
+                    numerator_unit=presentation.concentration_unit,
+                    denominator_value=presentation.concentration_denominator_value,
+                    denominator_unit=presentation.concentration_denominator_unit,
+                )
+
+            if presentation.calculation_ready and concentration is None:
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail={
+                        "code": "CLINICAL_DATA_INTEGRITY_ERROR",
+                        "message": (
+                            "Apresentação ativa marcada como calculation_ready sem "
+                            "concentração estruturada completa."
+                        ),
+                        "presentation_id": str(presentation.id),
+                    },
+                )
+
+            sync_presentations.append(
+                SyncPresentation(
+                    id=presentation.id,
+                    medication_product_id=product.id,
+                    external_presentation_code=presentation.external_presentation_code,
+                    description=presentation.description,
+                    strength_text=presentation.strength_text,
+                    dosage_form=DosageFormSummary(
+                        id=presentation.dosage_form.id,
+                        code=presentation.dosage_form.code,
+                        name=presentation.dosage_form.name,
+                    ),
+                    routes=[
+                        RouteSummary(
+                            id=link.route.id,
+                            code=link.route.code,
+                            name=link.route.name,
+                        )
+                        for link in sorted(
+                            presentation.route_links,
+                            key=lambda link: (link.route.name.casefold(), str(link.route.id)),
+                        )
+                    ],
+                    concentration=concentration,
+                    package_quantity=presentation.package_quantity,
+                    package_unit=presentation.package_unit,
+                    calculation_ready=bool(presentation.calculation_ready),
+                    regulatory_status=presentation.regulatory_status,
+                )
+            )
+
+    release_basis = {
+        "release_schema": "clinical-release-v1",
+        "active_ingredients": [
+            item.model_dump(mode="json") for item in sync_ingredients
+        ],
+        "medications": [item.model_dump(mode="json") for item in sync_medications],
+        "presentations": [
+            item.model_dump(mode="json") for item in sync_presentations
+        ],
+    }
+    release_bytes = json.dumps(
+        release_basis,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("utf-8")
+    digest = hashlib.sha256(release_bytes).hexdigest()
+    content_version = f"clinical-release-v1-{digest[:24]}"
+    etag = f'"{content_version}"'
+    common_headers = {
+        "ETag": etag,
+        "Cache-Control": "no-cache",
+        "X-Clinical-Release": content_version,
+    }
+
+    if request.headers.get("if-none-match") == etag:
+        return Response(status_code=status.HTTP_304_NOT_MODIFIED, headers=common_headers)
+
+    for key, value in common_headers.items():
+        response.headers[key] = value
+
+    return SyncContentResponse(
+        release_schema="clinical-release-v1",
+        content_version=content_version,
+        generated_at=datetime.now(timezone.utc),
+        active_ingredients=sync_ingredients,
+        medications=sync_medications,
+        presentations=sync_presentations,
     )
 
 
