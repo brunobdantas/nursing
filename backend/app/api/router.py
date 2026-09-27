@@ -68,6 +68,18 @@ def _normalize_search_term(value: str) -> str:
     return " ".join(value.casefold().split())
 
 
+def _professional_leaflet_url(registration: str | None) -> str | None:
+    if not registration:
+        return None
+    digits = "".join(char for char in registration if char.isdigit())
+    if not digits:
+        return None
+    return (
+        "https://consultas.anvisa.gov.br/#/bulario/q/"
+        f"?numeroRegistro={digits}"
+    )
+
+
 def _rank_match(candidate: str, query: str) -> tuple[SearchMatchType, float]:
     candidate_norm = _normalize_search_term(candidate)
     if candidate_norm == query:
@@ -221,11 +233,6 @@ async def get_sync_content(
     re-downloading the JSON body.
     """
 
-    ingredient_stmt = (
-        select(ActiveIngredient)
-        .where(ActiveIngredient.is_active.is_(True))
-        .order_by(ActiveIngredient.normalized_name, ActiveIngredient.id)
-    )
     product_stmt = (
         select(MedicationProduct)
         .where(MedicationProduct.is_active.is_(True))
@@ -243,8 +250,25 @@ async def get_sync_content(
         .order_by(MedicationProduct.normalized_generic_name, MedicationProduct.id)
     )
 
-    ingredients = list((await session.scalars(ingredient_stmt)).all())
     products = list((await session.scalars(product_stmt)).unique().all())
+    referenced_ingredient_ids = {
+        link.active_ingredient.id
+        for product in products
+        for link in product.ingredient_links
+        if link.active_ingredient.is_active
+    }
+    if referenced_ingredient_ids:
+        ingredient_stmt = (
+            select(ActiveIngredient)
+            .where(
+                ActiveIngredient.is_active.is_(True),
+                ActiveIngredient.id.in_(referenced_ingredient_ids),
+            )
+            .order_by(ActiveIngredient.normalized_name, ActiveIngredient.id)
+        )
+        ingredients = list((await session.scalars(ingredient_stmt)).all())
+    else:
+        ingredients = []
 
     sync_ingredients = [
         SyncActiveIngredient(
@@ -278,6 +302,11 @@ async def get_sync_content(
                 anvisa_registration_number=product.anvisa_registration_number,
                 manufacturer_name=product.manufacturer_name,
                 regulatory_status=product.regulatory_status,
+                therapeutic_class=product.therapeutic_class,
+                product_type=product.product_type,
+                professional_leaflet_url=_professional_leaflet_url(
+                    product.anvisa_registration_number
+                ),
                 active_ingredient_ids=ingredient_ids,
             )
         )
@@ -434,7 +463,9 @@ async def get_medication_detail(
     ]
 
     presentations: list[PresentationDetail] = []
-    for presentation in product.presentations:
+    for presentation in (
+        item for item in product.presentations if item.is_active
+    ):
         concentration: ConcentrationData | None = None
         concentration_complete = all(
             value is not None
@@ -509,6 +540,11 @@ async def get_medication_detail(
         anvisa_registration_number=product.anvisa_registration_number,
         manufacturer_name=product.manufacturer_name,
         regulatory_status=product.regulatory_status,
+        therapeutic_class=product.therapeutic_class,
+        product_type=product.product_type,
+        professional_leaflet_url=_professional_leaflet_url(
+            product.anvisa_registration_number
+        ),
         active_ingredients=ingredient_summaries,
         presentations=presentations,
     )

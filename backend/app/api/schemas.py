@@ -114,6 +114,9 @@ class MedicationDetailResponse(ApiModel):
     anvisa_registration_number: str | None = None
     manufacturer_name: str | None = None
     regulatory_status: str | None = None
+    therapeutic_class: str | None = None
+    product_type: str | None = None
+    professional_leaflet_url: str | None = None
     active_ingredients: list[ActiveIngredientSummary]
     presentations: list[PresentationDetail]
 
@@ -134,6 +137,9 @@ class SyncMedicationProduct(ApiModel):
     anvisa_registration_number: str | None = None
     manufacturer_name: str | None = None
     regulatory_status: str | None = None
+    therapeutic_class: str | None = None
+    product_type: str | None = None
+    professional_leaflet_url: str | None = None
     active_ingredient_ids: list[UUID]
 
 
