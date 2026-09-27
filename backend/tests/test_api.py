@@ -100,6 +100,8 @@ def _product(*, presentation=None, ingredient=None):
         anvisa_registration_number="123456789",
         manufacturer_name="Fabricante Exemplo",
         regulatory_status="VÁLIDO",
+        therapeutic_class="Analgésicos",
+        product_type="Referência",
         country_code="BR",
         is_active=True,
         ingredient_links=[ingredient_link],
@@ -115,8 +117,8 @@ async def test_search_returns_active_ingredients_and_products_contract():
     session = MagicMock()
     session.scalars = AsyncMock(
         side_effect=[
-            FakeScalarResult([ingredient]),
             FakeScalarResult([product]),
+            FakeScalarResult([ingredient]),
         ]
     )
     app = _app_with_session(session)
@@ -160,6 +162,11 @@ async def test_medication_detail_returns_structured_concentration_contract():
     assert payload["id"] == str(product.id)
     assert payload["generic_name"] == "Dipirona"
     assert payload["active_ingredients"][0]["canonical_name"] == "Dipirona"
+    assert payload["therapeutic_class"] == "Analgésicos"
+    assert payload["product_type"] == "Referência"
+    assert payload["professional_leaflet_url"].endswith(
+        "?numeroRegistro=123456789"
+    )
 
     returned_presentation = payload["presentations"][0]
     assert returned_presentation["calculation_ready"] is True
@@ -215,8 +222,8 @@ async def test_sync_content_returns_versioned_active_release_with_etag_and_gzip(
     session = MagicMock()
     session.scalars = AsyncMock(
         side_effect=[
-            FakeScalarResult([ingredient]),
             FakeScalarResult([product]),
+            FakeScalarResult([ingredient]),
         ]
     )
 
@@ -278,8 +285,8 @@ async def test_sync_content_fails_closed_on_inconsistent_calculation_ready_row()
     session = MagicMock()
     session.scalars = AsyncMock(
         side_effect=[
-            FakeScalarResult([ingredient]),
             FakeScalarResult([product]),
+            FakeScalarResult([ingredient]),
         ]
     )
     app = _app_with_session(session)
