@@ -67,7 +67,12 @@ jobs:
           assert data["release_schema"] == "clinical-release-v1"
           assert len(data["active_ingredients"]) > 0
           assert len(data["medications"]) > 0
-          print(data["content_version"])
+          assert len(data["presentations"]) > 0
+          print(
+              data["content_version"],
+              "medications=", len(data["medications"]),
+              "presentations=", len(data["presentations"]),
+          )
           PY
 
       - name: Generate deterministic branding assets
