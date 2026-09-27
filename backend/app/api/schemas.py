@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from decimal import Decimal
 from enum import StrEnum
 from typing import Annotated
@@ -115,3 +116,54 @@ class MedicationDetailResponse(ApiModel):
     regulatory_status: str | None = None
     active_ingredients: list[ActiveIngredientSummary]
     presentations: list[PresentationDetail]
+
+
+class SyncActiveIngredient(ApiModel):
+    id: UUID
+    canonical_name: str
+    normalized_name: str
+    atc_code: str | None = None
+
+
+class SyncMedicationProduct(ApiModel):
+    id: UUID
+    brand_name: str | None = None
+    normalized_brand_name: str | None = None
+    generic_name: str
+    normalized_generic_name: str
+    anvisa_registration_number: str | None = None
+    manufacturer_name: str | None = None
+    regulatory_status: str | None = None
+    active_ingredient_ids: list[UUID]
+
+
+class SyncPresentation(ApiModel):
+    id: UUID
+    medication_product_id: UUID
+    external_presentation_code: str | None = None
+    description: str
+    strength_text: str | None = None
+    dosage_form: DosageFormSummary
+    routes: list[RouteSummary]
+    concentration: ConcentrationData | None = None
+    package_quantity: Decimal | None = None
+    package_unit: str | None = None
+    calculation_ready: bool
+    regulatory_status: str | None = None
+
+    @model_validator(mode="after")
+    def sync_calculation_ready_requires_concentration(self) -> "SyncPresentation":
+        if self.calculation_ready and self.concentration is None:
+            raise ValueError(
+                "sync calculation_ready=true requires structured concentration"
+            )
+        return self
+
+
+class SyncContentResponse(ApiModel):
+    release_schema: str = "clinical-release-v1"
+    content_version: str
+    generated_at: datetime
+    active_ingredients: list[SyncActiveIngredient]
+    medications: list[SyncMedicationProduct]
+    presentations: list[SyncPresentation]
