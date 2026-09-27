@@ -1,0 +1,91 @@
+name: Bulário PDF Probe
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/bulario_pdf_probe.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Set up browser
+        shell: bash
+        run: |
+          cd /tmp
+          npm init -y >/dev/null 2>&1
+          npm install playwright@1.57.0 --silent
+          npx playwright install chromium >/dev/null
+
+      - name: Download known Bulário document through browser session
+        shell: bash
+        run: |
+          cat > /tmp/probe-document.mjs <<'JS'
+          import { chromium } from 'playwright';
+          import fs from 'node:fs';
+
+          const documentId = '35239160';
+          const browser = await chromium.launch({
+            headless: true,
+            args: ['--disable-blink-features=AutomationControlled'],
+          });
+          const context = await browser.newContext({
+            userAgent:
+              'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 ' +
+              '(KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
+          });
+          const page = await context.newPage();
+          await page.goto('https://consultas.anvisa.gov.br/', {
+            waitUntil: 'domcontentloaded',
+            timeout: 120000,
+          });
+          await page.waitForTimeout(5000);
+
+          const response = await context.request.get(
+            'https://consultas.anvisa.gov.br/api/consulta/downloadPDF/' +
+              encodeURIComponent(documentId),
+            { timeout: 120000 },
+          );
+          console.log('DOCUMENT_STATUS', response.status());
+          console.log(
+            'DOCUMENT_CONTENT_TYPE',
+            response.headers()['content-type'] ?? null,
+          );
+          const body = await response.body();
+          console.log('DOCUMENT_BYTES', body.length);
+          console.log('DOCUMENT_MAGIC', body.subarray(0, 8).toString('latin1'));
+          if (response.ok() && body.subarray(0, 4).toString('latin1') === '%PDF') {
+            fs.writeFileSync('/tmp/document.pdf', body);
+          }
+          await browser.close();
+          JS
+          cd /tmp
+          node /tmp/probe-document.mjs
+          if [ -f /tmp/document.pdf ]; then
+            python3 -m pip install --quiet 'pypdf>=5,<7'
+            python3 - <<'PY'
+          from pypdf import PdfReader
+          reader=PdfReader("/tmp/document.pdf")
+          text="\n".join((page.extract_text() or "") for page in reader.pages)
+          print("PDF_PAGES", len(reader.pages))
+          print("PDF_TEXT_CHARS", len(text))
+          print("PDF_HAS_PROFESSIONAL", "PROFISSIONAL" in text.upper())
+          print("PDF_HEADINGS", [
+              heading for heading in (
+                  "INDICAÇÕES",
+                  "CONTRAINDICAÇÕES",
+                  "ADVERTÊNCIAS E PRECAUÇÕES",
+                  "INTERAÇÕES MEDICAMENTOSAS",
+                  "POSOLOGIA E MODO DE USAR",
+                  "REAÇÕES ADVERSAS",
+              ) if heading in text.upper()
+          ])
+          print("PDF_TEXT_PREFIX", repr(text[:1800]))
+          PY
+          fi
