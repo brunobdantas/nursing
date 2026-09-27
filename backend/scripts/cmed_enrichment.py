@@ -243,6 +243,14 @@ def _match_product(
     return None
 
 
+BULK_CHUNK_SIZE = 1000
+
+
+def _chunks(rows: list[dict[str, Any]], size: int = BULK_CHUNK_SIZE):
+    for start in range(0, len(rows), size):
+        yield rows[start : start + size]
+
+
 async def enrich_cmed(
     session: AsyncSession,
     *,
@@ -504,60 +512,64 @@ async def enrich_cmed(
             )
         )
     if assertion_rows:
-        stmt = pg_insert(SourceAssertion).values(assertion_rows)
-        await session.execute(
-            stmt.on_conflict_do_update(
-                index_elements=[SourceAssertion.id],
-                set_={
-                    "value_text": stmt.excluded.value_text,
-                    "value_json": stmt.excluded.value_json,
-                    "source_locator": stmt.excluded.source_locator,
-                    "content_hash": stmt.excluded.content_hash,
-                },
+        for chunk in _chunks(assertion_rows):
+            stmt = pg_insert(SourceAssertion).values(chunk)
+            await session.execute(
+                stmt.on_conflict_do_update(
+                    index_elements=[SourceAssertion.id],
+                    set_={
+                        "value_text": stmt.excluded.value_text,
+                        "value_json": stmt.excluded.value_json,
+                        "source_locator": stmt.excluded.source_locator,
+                        "content_hash": stmt.excluded.content_hash,
+                    },
+                )
             )
-        )
     if presentation_rows:
-        stmt = pg_insert(Presentation).values(presentation_rows)
-        await session.execute(
-            stmt.on_conflict_do_update(
-                index_elements=[
-                    Presentation.medication_product_id,
-                    Presentation.external_presentation_code,
-                ],
-                set_={
-                    "dosage_form_id": stmt.excluded.dosage_form_id,
-                    "description": stmt.excluded.description,
-                    "strength_text": stmt.excluded.strength_text,
-                    "regulatory_status": stmt.excluded.regulatory_status,
-                    "is_active": True,
-                },
+        for chunk in _chunks(presentation_rows):
+            stmt = pg_insert(Presentation).values(chunk)
+            await session.execute(
+                stmt.on_conflict_do_update(
+                    index_elements=[
+                        Presentation.medication_product_id,
+                        Presentation.external_presentation_code,
+                    ],
+                    set_={
+                        "dosage_form_id": stmt.excluded.dosage_form_id,
+                        "description": stmt.excluded.description,
+                        "strength_text": stmt.excluded.strength_text,
+                        "regulatory_status": stmt.excluded.regulatory_status,
+                        "is_active": True,
+                    },
+                )
             )
-        )
     if route_links:
-        await session.execute(
-            pg_insert(PresentationRoute)
-            .values(route_links)
-            .on_conflict_do_nothing(
-                index_elements=[
-                    PresentationRoute.presentation_id,
-                    PresentationRoute.route_id,
-                ]
+        for chunk in _chunks(route_links):
+            await session.execute(
+                pg_insert(PresentationRoute)
+                .values(chunk)
+                .on_conflict_do_nothing(
+                    index_elements=[
+                        PresentationRoute.presentation_id,
+                        PresentationRoute.route_id,
+                    ]
+                )
             )
-        )
     if provenance_rows:
-        await session.execute(
-            pg_insert(FieldProvenance)
-            .values(provenance_rows)
-            .on_conflict_do_nothing(
-                index_elements=[
-                    FieldProvenance.target_layer,
-                    FieldProvenance.target_entity_type,
-                    FieldProvenance.target_entity_id,
-                    FieldProvenance.target_field_name,
-                    FieldProvenance.source_assertion_id,
-                ]
+        for chunk in _chunks(provenance_rows):
+            await session.execute(
+                pg_insert(FieldProvenance)
+                .values(chunk)
+                .on_conflict_do_nothing(
+                    index_elements=[
+                        FieldProvenance.target_layer,
+                        FieldProvenance.target_entity_type,
+                        FieldProvenance.target_entity_id,
+                        FieldProvenance.target_field_name,
+                        FieldProvenance.source_assertion_id,
+                    ]
+                )
             )
-        )
     if product_enrichment:
         table = MedicationProduct.__table__
         stmt = (
