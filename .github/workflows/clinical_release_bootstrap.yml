@@ -1,0 +1,53 @@
+name: Bootstrap Compressed Clinical Release
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/clinical_release_bootstrap.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  compress-existing-release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Compress existing validated release
+        shell: bash
+        run: |
+          test -s clinical-releases/clinical-release-v1.json
+          gzip -9 -c clinical-releases/clinical-release-v1.json             > clinical-releases/clinical-release-v1.json.gz
+          python3 - <<'PY'
+          import gzip
+          import json
+          from pathlib import Path
+
+          raw = Path("clinical-releases/clinical-release-v1.json").read_bytes()
+          compressed = Path("clinical-releases/clinical-release-v1.json.gz").read_bytes()
+          assert gzip.decompress(compressed) == raw
+          data = json.loads(raw.decode("utf-8"))
+          assert data["release_schema"] == "clinical-release-v1"
+          assert len(data["active_ingredients"]) > 0
+          assert len(data["medications"]) > 0
+          print(data["content_version"], len(raw), len(compressed))
+          PY
+
+      - name: Publish compressed release
+        shell: bash
+        run: |
+          if [ -z "$(git status --porcelain -- clinical-releases/clinical-release-v1.json.gz)" ]; then
+            echo "Compressed release already current."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add clinical-releases/clinical-release-v1.json.gz
+          git commit -m "data: publish compressed clinical release"
+          git pull --rebase origin main
+          git push origin HEAD:main
