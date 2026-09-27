@@ -231,3 +231,9 @@ jobs:
           await browser.close();
           JS
           node /tmp/probe-bulario.mjs
+
+
+      - name: Print Anvisa API adapter source
+        shell: bash
+        run: |
+          sed -n '1,240p' /tmp/mcpassure/package/dist/sources/anvisa-api.js
