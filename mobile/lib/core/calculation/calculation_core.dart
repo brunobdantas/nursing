@@ -205,8 +205,7 @@ abstract final class CalculationCore {
     if (!input.calculationReady) {
       return CalculationResult.failure(
         code: CalculationErrorCode.calculationNotReady,
-        message:
-            'Esta apresentação ainda não está validada para cálculo automático.',
+        message: 'Esta apresentação ainda não está validada para cálculo automático.',
       );
     }
 

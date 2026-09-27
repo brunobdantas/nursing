@@ -22,9 +22,8 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/',
       name: 'home',
-      builder: (context, state) => HomeScreen(
-        recentRepository: recentMedicationRepository,
-      ),
+      builder: (context, state) =>
+          HomeScreen(recentRepository: recentMedicationRepository),
     ),
     GoRoute(
       path: '/search',

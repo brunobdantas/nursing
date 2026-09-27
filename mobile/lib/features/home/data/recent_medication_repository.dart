@@ -62,9 +62,7 @@ abstract interface class RecentMedicationRepository {
 
 final class SharedPreferencesRecentMedicationRepository
     implements RecentMedicationRepository {
-  SharedPreferencesRecentMedicationRepository({
-    this.maxItems = 8,
-  });
+  SharedPreferencesRecentMedicationRepository({this.maxItems = 8});
 
   static const String storageKey = 'recent_medications_v1';
 
@@ -97,9 +95,7 @@ final class SharedPreferencesRecentMedicationRepository
         try {
           items.add(
             RecentMedication.fromJson(
-              item.map(
-                (key, value) => MapEntry(key.toString(), value),
-              ),
+              item.map((key, value) => MapEntry(key.toString(), value)),
             ),
           );
         } on FormatException {

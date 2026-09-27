@@ -37,16 +37,19 @@ void main() {
     expect(recent, hasLength(1));
   });
 
-  test('corrupt convenience storage fails open to an empty recent list', () async {
-    final preferences = await SharedPreferences.getInstance();
-    await preferences.setString(
-      SharedPreferencesRecentMedicationRepository.storageKey,
-      '{not-json',
-    );
-    final repository = SharedPreferencesRecentMedicationRepository();
+  test(
+    'corrupt convenience storage fails open to an empty recent list',
+    () async {
+      final preferences = await SharedPreferences.getInstance();
+      await preferences.setString(
+        SharedPreferencesRecentMedicationRepository.storageKey,
+        '{not-json',
+      );
+      final repository = SharedPreferencesRecentMedicationRepository();
 
-    final recent = await repository.loadRecent();
+      final recent = await repository.loadRecent();
 
-    expect(recent, isEmpty);
-  });
+      expect(recent, isEmpty);
+    },
+  );
 }

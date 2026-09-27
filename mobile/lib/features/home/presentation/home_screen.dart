@@ -5,15 +5,13 @@ import '../../../theme/clinical_theme.dart';
 import '../data/recent_medication_repository.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({
-    required this.recentRepository,
-    super.key,
-  });
+  const HomeScreen({required this.recentRepository, super.key});
 
   static const Key searchKey = ValueKey<String>('home-search');
   static const Key doseActionKey = ValueKey<String>('quick-action-dose');
-  static const Key infusionActionKey =
-      ValueKey<String>('quick-action-infusion');
+  static const Key infusionActionKey = ValueKey<String>(
+    'quick-action-infusion',
+  );
   static const Key dropsActionKey = ValueKey<String>('quick-action-drops');
 
   final RecentMedicationRepository recentRepository;
@@ -140,8 +138,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             key: HomeScreen.doseActionKey,
                             icon: Icons.medication_outlined,
                             label: 'Calcular dose',
-                            onPressed: () =>
-                                context.push('/calculators/dose'),
+                            onPressed: () => context.push('/calculators/dose'),
                           ),
                         ),
                         SizedBox(
@@ -160,8 +157,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             key: HomeScreen.dropsActionKey,
                             icon: Icons.opacity_outlined,
                             label: 'Gotejamento',
-                            onPressed: () =>
-                                context.push('/calculators/drip'),
+                            onPressed: () => context.push('/calculators/drip'),
                           ),
                         ),
                         SizedBox(
@@ -169,8 +165,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: _QuickAction(
                             icon: Icons.monitor_weight_outlined,
                             label: 'mg/kg',
-                            onPressed: () =>
-                                context.push('/calculators/mg-kg'),
+                            onPressed: () => context.push('/calculators/mg-kg'),
                           ),
                         ),
                       ],
@@ -193,8 +188,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       padding: const EdgeInsets.only(bottom: 10),
                       child: _RecentMedicationCard(
                         item: item,
-                        onTap: () =>
-                            _openAndRefresh('/medications/${item.id}'),
+                        onTap: () => _openAndRefresh('/medications/${item.id}'),
                       ),
                     ),
                   ),
@@ -228,10 +222,7 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class _SectionTitle extends StatelessWidget {
-  const _SectionTitle({
-    required this.title,
-    required this.subtitle,
-  });
+  const _SectionTitle({required this.title, required this.subtitle});
 
   final String title;
   final String subtitle;
@@ -268,10 +259,7 @@ class _QuickAction extends StatelessWidget {
     return FilledButton.tonalIcon(
       onPressed: onPressed,
       icon: Icon(icon, size: 24),
-      label: Align(
-        alignment: Alignment.centerLeft,
-        child: Text(label),
-      ),
+      label: Align(alignment: Alignment.centerLeft, child: Text(label)),
       style: FilledButton.styleFrom(
         alignment: Alignment.centerLeft,
         minimumSize: const Size(
@@ -284,10 +272,7 @@ class _QuickAction extends StatelessWidget {
 }
 
 class _RecentMedicationCard extends StatelessWidget {
-  const _RecentMedicationCard({
-    required this.item,
-    required this.onTap,
-  });
+  const _RecentMedicationCard({required this.item, required this.onTap});
 
   final RecentMedication item;
   final VoidCallback onTap;
@@ -307,16 +292,10 @@ class _RecentMedicationCard extends StatelessWidget {
             minHeight: ClinicalTheme.primaryActionHeight,
           ),
           child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 14,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             child: Row(
               children: [
-                Icon(
-                  Icons.history_rounded,
-                  color: theme.colorScheme.primary,
-                ),
+                Icon(Icons.history_rounded, color: theme.colorScheme.primary),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(

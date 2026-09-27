@@ -31,7 +31,9 @@ void main() {
     final doseSize = tester.getSize(find.byKey(HomeScreen.doseActionKey));
     expect(doseSize.height, greaterThanOrEqualTo(48));
 
-    final infusionSize = tester.getSize(find.byKey(HomeScreen.infusionActionKey));
+    final infusionSize = tester.getSize(
+      find.byKey(HomeScreen.infusionActionKey),
+    );
     expect(infusionSize.height, greaterThanOrEqualTo(48));
 
     final dropsSize = tester.getSize(find.byKey(HomeScreen.dropsActionKey));
@@ -62,9 +64,7 @@ void main() {
     expect(find.text('substância recente'), findsOneWidget);
     expect(
       find.byKey(
-        const ValueKey<String>(
-          'recent-11111111-1111-1111-1111-111111111111',
-        ),
+        const ValueKey<String>('recent-11111111-1111-1111-1111-111111111111'),
       ),
       findsOneWidget,
     );

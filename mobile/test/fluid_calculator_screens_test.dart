@@ -31,7 +31,9 @@ void main() {
     expect(find.text('Memória de Cálculo'), findsOneWidget);
   });
 
-  testWidgets('drops calculator renders macro and micro results', (tester) async {
+  testWidgets('drops calculator renders macro and micro results', (
+    tester,
+  ) async {
     await tester.pumpWidget(
       MaterialApp(
         theme: ClinicalTheme.light(),
@@ -78,7 +80,10 @@ void main() {
     );
     await tester.pump();
 
-    expect(find.text('Volume e tempo devem ser maiores que zero.'), findsOneWidget);
+    expect(
+      find.text('Volume e tempo devem ser maiores que zero.'),
+      findsOneWidget,
+    );
     expect(find.text('125 mL/h'), findsNothing);
   });
 }

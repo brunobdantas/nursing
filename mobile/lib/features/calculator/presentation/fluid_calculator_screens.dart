@@ -302,10 +302,7 @@ class _FluidInputBody extends StatelessWidget {
             },
           ),
         ),
-        if (outcome != null) ...[
-          const SizedBox(height: 24),
-          outcome!,
-        ],
+        if (outcome != null) ...[const SizedBox(height: 24), outcome!],
       ],
     );
   }
