@@ -237,3 +237,126 @@ jobs:
         shell: bash
         run: |
           sed -n '1,240p' /tmp/mcpassure/package/dist/sources/anvisa-api.js
+
+
+      - name: Probe direct professional leaflet download by Anvisa process
+        shell: bash
+        run: |
+          cat > /tmp/probe-direct-bula.mjs <<'JS'
+          import { chromium } from 'playwright';
+          import fs from 'node:fs';
+
+          const processNumber = '250000031219551';
+          const browser = await chromium.launch({
+            headless: true,
+            args: ['--disable-blink-features=AutomationControlled'],
+          });
+          const context = await browser.newContext({
+            userAgent:
+              'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 ' +
+              '(KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
+          });
+          const page = await context.newPage();
+          await page.goto('https://consultas.anvisa.gov.br/', {
+            waitUntil: 'domcontentloaded',
+            timeout: 120000,
+          });
+          await page.waitForTimeout(5000);
+
+          const detail = await page.evaluate(async (p) => {
+            const response = await fetch(
+              '/api/consulta/medicamento/produtos/' + encodeURIComponent(p),
+              {
+                headers: { Accept: 'application/json' },
+                credentials: 'include',
+              },
+            );
+            const text = await response.text();
+            return { status: response.status, text };
+          }, processNumber);
+
+          console.log('DIRECT_DETAIL_STATUS', detail.status);
+          if (detail.status !== 200) {
+            console.log('DIRECT_DETAIL_BODY', detail.text.slice(0, 4000));
+            await browser.close();
+            process.exit(0);
+          }
+
+          const parsed = JSON.parse(detail.text);
+          console.log('DIRECT_DETAIL_KEYS', Object.keys(parsed).sort());
+          console.log('DIRECT_DETAIL_NAME', parsed.nomeComercial ?? parsed.nomeProduto);
+          console.log('DIRECT_DETAIL_REGISTRATION', parsed.numeroRegistro);
+          const token =
+            parsed.codigoBulaProfissional ?? parsed.idBulaProfissionalProtegido;
+          console.log('PROF_TOKEN_PRESENT', Boolean(token));
+
+          if (!token) {
+            await browser.close();
+            process.exit(0);
+          }
+
+          const linkResult = await page.evaluate(async (t) => {
+            const response = await fetch(
+              '/api/consulta/medicamentos/arquivo/bula/parecer/' +
+                encodeURIComponent(t) +
+                '/',
+              {
+                headers: { Accept: 'application/json' },
+                credentials: 'include',
+              },
+            );
+            return { status: response.status, text: await response.text() };
+          }, token);
+
+          console.log('PROF_LINK_STATUS', linkResult.status);
+          if (linkResult.status !== 200) {
+            console.log('PROF_LINK_BODY', linkResult.text.slice(0, 3000));
+            await browser.close();
+            process.exit(0);
+          }
+
+          let link;
+          try {
+            const value = JSON.parse(linkResult.text);
+            link = typeof value === 'string' ? value : (value.link ?? value.url);
+          } catch {
+            link = linkResult.text.replace(/^"|"$/g, '');
+          }
+          if (!link) {
+            console.log('PROF_LINK_EMPTY');
+            await browser.close();
+            process.exit(0);
+          }
+          const parsedUrl = new URL(link, 'https://consultas.anvisa.gov.br/');
+          console.log('PROF_LINK_HOST', parsedUrl.host);
+          console.log('PROF_LINK_PATH_PREFIX', parsedUrl.pathname.slice(0, 120));
+
+          const response = await context.request.get(parsedUrl.toString(), {
+            timeout: 120000,
+          });
+          console.log('PROF_PDF_STATUS', response.status());
+          const body = await response.body();
+          console.log('PROF_PDF_BYTES', body.length);
+          console.log(
+            'PROF_PDF_MAGIC',
+            body.subarray(0, 5).toString('latin1'),
+          );
+          if (response.ok() && body.subarray(0, 4).toString('latin1') === '%PDF') {
+            fs.writeFileSync('/tmp/professional_leaflet.pdf', body);
+          }
+          await browser.close();
+          JS
+          cd /tmp
+          node /tmp/probe-direct-bula.mjs
+          if [ -f /tmp/professional_leaflet.pdf ]; then
+            python3 -m pip install --quiet 'pypdf>=5,<7'
+            python3 - <<'PY'
+          from pypdf import PdfReader
+          path="/tmp/professional_leaflet.pdf"
+          reader=PdfReader(path)
+          text="\n".join((page.extract_text() or "") for page in reader.pages)
+          print("PDF_PAGES", len(reader.pages))
+          print("PDF_TEXT_CHARS", len(text))
+          print("PDF_TEXT_PREFIX", repr(text[:2500]))
+          PY
+          fi
