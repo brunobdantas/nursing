@@ -13,7 +13,7 @@ class NursingApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: 'Nursing',
+      title: 'Nursing App',
       debugShowCheckedModeBanner: false,
       routerConfig: appRouter,
       theme: ClinicalTheme.light(),
