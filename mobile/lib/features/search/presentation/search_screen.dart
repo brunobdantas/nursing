@@ -3,9 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../medication/data/medication_models.dart';
-import '../../../medication/data/medication_repository.dart';
-import '../../../../theme/clinical_theme.dart';
+import '../../../theme/clinical_theme.dart';
+import '../../medication/data/medication_models.dart';
+import '../../medication/data/medication_repository.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({
