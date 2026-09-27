@@ -1,7 +1,7 @@
 name: nursing_clinical_core
-description: Deterministic offline clinical calculation core for the nursing MVP.
+description: Intelligent drug reference and deterministic clinical calculation core for nursing.
 publish_to: none
-version: 0.1.0+1
+version: 0.2.0+1
 
 environment:
   sdk: ">=3.13.0 <4.0.0"
@@ -11,6 +11,7 @@ dependencies:
   flutter:
     sdk: flutter
   decimal: 3.2.6
+  go_router: ^18.0.1
 
 dev_dependencies:
   flutter_test:
