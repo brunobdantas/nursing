@@ -360,3 +360,131 @@ jobs:
           print("PDF_TEXT_PREFIX", repr(text[:2500]))
           PY
           fi
+
+
+      - name: Probe Bulário filtered search and detail identifiers
+        shell: bash
+        run: |
+          cat > /tmp/probe-filtered-bulario.mjs <<'JS'
+          import { chromium } from 'playwright';
+
+          const browser = await chromium.launch({
+            headless: true,
+            args: ['--disable-blink-features=AutomationControlled'],
+          });
+          const context = await browser.newContext({
+            userAgent:
+              'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 ' +
+              '(KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
+          });
+          const page = await context.newPage();
+          await page.goto('https://consultas.anvisa.gov.br/', {
+            waitUntil: 'domcontentloaded',
+            timeout: 120000,
+          });
+          await page.waitForTimeout(5000);
+
+          const result = await page.evaluate(async () => {
+            const params = new URLSearchParams({
+              page: '1',
+              count: '10',
+              'filter[nomeProduto]': 'GLICOSE BEKER',
+            });
+            const response = await fetch(
+              '/api/consulta/bulario?' + params.toString(),
+              {
+                headers: { Accept: 'application/json' },
+                credentials: 'include',
+              },
+            );
+            return { status: response.status, text: await response.text() };
+          });
+          console.log('FILTERED_SEARCH_STATUS', result.status);
+          if (result.status !== 200) {
+            console.log('FILTERED_SEARCH_BODY', result.text.slice(0, 5000));
+            await browser.close();
+            process.exit(0);
+          }
+
+          const parsed = JSON.parse(result.text);
+          console.log('FILTERED_TOTAL', parsed.totalElements ?? parsed.total ?? null);
+          console.log('FILTERED_COUNT', parsed.content?.length ?? 0);
+          for (const [index, item] of (parsed.content ?? []).entries()) {
+            const safe = {
+              index,
+              keys: Object.keys(item).sort(),
+              nome:
+                item.nomeProduto ??
+                item.nomeComercial ??
+                item.produto ??
+                null,
+              registro: item.numeroRegistro ?? item.registro ?? null,
+              processo:
+                item.numeroProcesso ??
+                item.numProcesso ??
+                item.processo ??
+                item.processoProduto ??
+                null,
+              id: item.id ?? item.idProduto ?? null,
+            };
+            console.log('FILTERED_ITEM', JSON.stringify(safe));
+          }
+
+          const first = parsed.content?.[0];
+          if (first) {
+            const candidates = [
+              first.numeroProcesso,
+              first.numProcesso,
+              first.processo,
+              first.processoProduto,
+              first.id,
+              first.idProduto,
+            ].filter(Boolean);
+            for (const candidate of [...new Set(candidates)]) {
+              const detail = await page.evaluate(async (p) => {
+                const response = await fetch(
+                  '/api/consulta/medicamento/produtos/' +
+                    encodeURIComponent(String(p)),
+                  {
+                    headers: { Accept: 'application/json' },
+                    credentials: 'include',
+                  },
+                );
+                return {
+                  candidate: String(p),
+                  status: response.status,
+                  text: await response.text(),
+                };
+              }, candidate);
+              console.log(
+                'CANDIDATE_DETAIL',
+                JSON.stringify({
+                  candidate: detail.candidate,
+                  status: detail.status,
+                  body:
+                    detail.status === 200
+                      ? (() => {
+                          const value = JSON.parse(detail.text);
+                          return {
+                            keys: Object.keys(value).sort(),
+                            nome: value.nomeComercial ?? value.nomeProduto,
+                            registro: value.numeroRegistro,
+                            process:
+                              value.numeroProcesso ??
+                              value.numProcesso ??
+                              value.processo,
+                            hasProfessionalToken: Boolean(
+                              value.codigoBulaProfissional ??
+                                value.idBulaProfissionalProtegido,
+                            ),
+                          };
+                        })()
+                      : detail.text.slice(0, 1000),
+                }),
+              );
+            }
+          }
+          await browser.close();
+          JS
+          cd /tmp
+          node /tmp/probe-filtered-bulario.mjs
