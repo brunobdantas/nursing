@@ -4,6 +4,7 @@ import 'package:nursing_clinical_core/features/calculator/presentation/calculato
 import 'package:nursing_clinical_core/features/medication/presentation/medication_detail_screen.dart';
 import 'package:nursing_clinical_core/theme/clinical_theme.dart';
 
+import 'support/fake_favorite_medication_repository.dart';
 import 'support/fake_medication_repository.dart';
 import 'support/fake_recent_medication_repository.dart';
 
@@ -13,6 +14,7 @@ void main() {
     (tester) async {
       final repository = FakeMedicationRepository();
       final recentRepository = FakeRecentMedicationRepository();
+      final favoriteRepository = FakeFavoriteMedicationRepository();
 
       await tester.pumpWidget(
         MaterialApp(
@@ -21,6 +23,7 @@ void main() {
             medicationId: repository.detailResponse.id,
             repository: repository,
             recentRepository: recentRepository,
+            favoriteRepository: favoriteRepository,
             startCalculationFlow: true,
           ),
         ),
@@ -42,6 +45,17 @@ void main() {
       );
       expect(button.onPressed, isNotNull);
       expect(recentRepository.recordCalls, 1);
+
+      expect(
+        find.byKey(const ValueKey<String>('favorite-toggle-button')),
+        findsOneWidget,
+      );
+      await tester.tap(
+        find.byKey(const ValueKey<String>('favorite-toggle-button')),
+      );
+      await tester.pumpAndSettle();
+      expect(favoriteRepository.toggleCalls, 1);
+      expect(find.byIcon(Icons.star_rounded), findsOneWidget);
     },
   );
 
