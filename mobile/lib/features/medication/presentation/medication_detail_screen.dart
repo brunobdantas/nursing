@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../theme/clinical_theme.dart';
 import '../../home/data/favorite_medication_repository.dart';
@@ -254,6 +255,8 @@ class _MedicationDetailBody extends StatelessWidget {
               startCalculationFlow: startCalculationFlow,
             ),
             const SizedBox(height: 24),
+            _OfficialLeafletSection(medication: medication),
+            const SizedBox(height: 24),
             Text(
               'Apresentações',
               style: Theme.of(context).textTheme.titleLarge,
@@ -332,6 +335,16 @@ class _IdentitySection extends StatelessWidget {
           label: 'Situação regulatória',
           value: medication.regulatoryStatus ?? 'Não informada',
         ),
+        if (medication.therapeuticClass != null)
+          _MetadataLine(
+            label: 'Classe terapêutica',
+            value: medication.therapeuticClass!,
+          ),
+        if (medication.productType != null)
+          _MetadataLine(
+            label: 'Tipo de produto',
+            value: medication.productType!,
+          ),
       ],
     );
   }
@@ -410,6 +423,104 @@ class _SafetySection extends StatelessWidget {
     );
   }
 }
+
+class _OfficialLeafletSection extends StatelessWidget {
+  const _OfficialLeafletSection({required this.medication});
+
+  final MedicationDetailResponse medication;
+
+  Future<void> _openLeaflet(BuildContext context) async {
+    final rawUrl = medication.professionalLeafletUrl;
+    if (rawUrl == null) {
+      return;
+    }
+
+    final uri = Uri.tryParse(rawUrl);
+    if (uri == null || uri.scheme != 'https') {
+      return;
+    }
+
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!opened && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Não foi possível abrir o Bulário da Anvisa neste dispositivo.',
+          ),
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final semantic = theme.extension<ClinicalSemanticColors>()!;
+    final hasLeaflet = medication.professionalLeafletUrl != null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Bula e fontes oficiais', style: theme.textTheme.titleLarge),
+        const SizedBox(height: 10),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: semantic.informationContainer,
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.verified_outlined,
+                    color: semantic.onInformationContainer,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Cadastro regulatório: Anvisa • apresentações: CMED',
+                      style: theme.textTheme.bodyLarge?.copyWith(
+                        color: semantic.onInformationContainer,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                hasLeaflet
+                    ? 'A bula profissional completa é aberta diretamente no '
+                          'Bulário Eletrônico oficial da Anvisa pelo número de '
+                          'registro. Requer conexão com a internet.'
+                    : 'Não foi possível construir o endereço oficial da bula '
+                          'para este registro.',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: semantic.onInformationContainer,
+                ),
+              ),
+              if (hasLeaflet) ...[
+                const SizedBox(height: 14),
+                FilledButton.icon(
+                  key: const ValueKey<String>('open-professional-leaflet'),
+                  onPressed: () => _openLeaflet(context),
+                  icon: const Icon(Icons.open_in_new_rounded),
+                  label: const Text('ABRIR BULA PROFISSIONAL'),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 
 class _PresentationCard extends StatelessWidget {
   const _PresentationCard({
