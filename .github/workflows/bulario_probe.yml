@@ -48,3 +48,37 @@ jobs:
                   if i>=3:
                       break
           PY
+
+
+      - name: Inspect open-source Bulário CSV adapter
+        shell: bash
+        run: |
+          cd /tmp
+          npm pack @mcpassure/mcp-anvisa-bulario@2.1.10 --silent
+          mkdir -p /tmp/mcpassure
+          tar -xzf mcpassure-mcp-anvisa-bulario-2.1.10.tgz -C /tmp/mcpassure
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("/tmp/mcpassure/package")
+          needles=(
+              "TA_CONSULTA_BULA_PRODUTO",
+              "TA_CONSULTA_BULA_DOCUMENTO",
+              "downloadPDF",
+              "numeroRegistro",
+              "bula_profissional",
+          )
+          for path in root.rglob("*"):
+              if not path.is_file():
+                  continue
+              try:
+                  text=path.read_text(encoding="utf-8")
+              except Exception:
+                  continue
+              if any(n in text for n in needles):
+                  print("\n###", path.relative_to(root))
+                  lines=text.splitlines()
+                  for i,line in enumerate(lines):
+                      if any(n in line for n in needles):
+                          start=max(0,i-20); end=min(len(lines),i+50)
+                          print("\n".join(lines[start:end]))
+          PY
