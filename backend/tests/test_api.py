@@ -10,6 +10,7 @@ from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
 from app.api.router import get_db_session, router
+from app.main import create_app
 
 
 class FakeScalarResult:
@@ -194,3 +195,102 @@ async def test_detail_fails_closed_when_calculation_ready_has_incomplete_concent
     assert payload["detail"]["code"] == "CLINICAL_DATA_INTEGRITY_ERROR"
     assert payload["detail"]["presentation_id"] == str(inconsistent.id)
     assert "presentations" not in payload
+
+
+@pytest.mark.asyncio
+async def test_sync_content_returns_versioned_active_release_with_etag_and_gzip():
+    ingredient = _ingredient()
+    active_presentation = _presentation(
+        calculation_ready=True,
+        complete_concentration=True,
+    )
+    inactive_presentation = _presentation(
+        calculation_ready=False,
+        complete_concentration=True,
+    )
+    inactive_presentation.is_active = False
+    product = _product(presentation=active_presentation, ingredient=ingredient)
+    product.presentations.append(inactive_presentation)
+
+    session = MagicMock()
+    session.scalars = AsyncMock(
+        side_effect=[
+            FakeScalarResult([ingredient]),
+            FakeScalarResult([product]),
+        ]
+    )
+
+    app = create_app()
+
+    async def override_db_session():
+        yield session
+
+    app.dependency_overrides[get_db_session] = override_db_session
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://test",
+        headers={"Accept-Encoding": "gzip"},
+    ) as client:
+        response = await client.get("/v1/sync/content")
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["release_schema"] == "clinical-release-v1"
+        assert payload["content_version"].startswith("clinical-release-v1-")
+        assert len(payload["active_ingredients"]) == 1
+        assert len(payload["medications"]) == 1
+        assert len(payload["presentations"]) == 1
+        assert payload["presentations"][0]["id"] == str(active_presentation.id)
+        assert payload["presentations"][0]["calculation_ready"] is True
+        assert response.headers["etag"] == f'"{payload["content_version"]}"'
+        assert response.headers["x-clinical-release"] == payload["content_version"]
+        assert response.headers.get("content-encoding") == "gzip"
+
+        session.scalars = AsyncMock(
+            side_effect=[
+                FakeScalarResult([ingredient]),
+                FakeScalarResult([product]),
+            ]
+        )
+        not_modified = await client.get(
+            "/v1/sync/content",
+            headers={
+                "Accept-Encoding": "gzip",
+                "If-None-Match": response.headers["etag"],
+            },
+        )
+
+    assert not_modified.status_code == 304
+    assert not_modified.content == b""
+    assert not_modified.headers["etag"] == response.headers["etag"]
+
+
+@pytest.mark.asyncio
+async def test_sync_content_fails_closed_on_inconsistent_calculation_ready_row():
+    ingredient = _ingredient()
+    inconsistent = _presentation(
+        calculation_ready=True,
+        complete_concentration=False,
+    )
+    product = _product(presentation=inconsistent, ingredient=ingredient)
+
+    session = MagicMock()
+    session.scalars = AsyncMock(
+        side_effect=[
+            FakeScalarResult([ingredient]),
+            FakeScalarResult([product]),
+        ]
+    )
+    app = _app_with_session(session)
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://test",
+    ) as client:
+        response = await client.get("/v1/sync/content")
+
+    assert response.status_code == 503
+    payload = response.json()
+    assert payload["detail"]["code"] == "CLINICAL_DATA_INTEGRITY_ERROR"
+    assert payload["detail"]["presentation_id"] == str(inconsistent.id)
