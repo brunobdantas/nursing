@@ -3,14 +3,13 @@ import 'dart:convert';
 import 'package:path/path.dart' as p;
 import 'package:sqflite/sqflite.dart';
 
-import '../../sync/sync_models.dart';
+import '../sync/sync_models.dart';
 
 final class ClinicalDatabase {
   ClinicalDatabase({
     DatabaseFactory? factory,
-    String? databasePath,
-  }) : _factory = factory ?? databaseFactory,
-       _databasePath = databasePath;
+    this.databasePath,
+  }) : _factory = factory ?? databaseFactory;
 
   static const int schemaVersion = 1;
   static const String defaultFileName = 'nursing_clinical_v1.db';
@@ -18,7 +17,7 @@ final class ClinicalDatabase {
   static const String lastSyncAtKey = 'clinical_last_sync_at';
 
   final DatabaseFactory _factory;
-  final String? _databasePath;
+  final String? databasePath;
   Database? _database;
 
   Future<Database> get database async {
@@ -27,7 +26,7 @@ final class ClinicalDatabase {
       return existing;
     }
 
-    final path = _databasePath ?? p.join(await getDatabasesPath(), defaultFileName);
+    final path = databasePath ?? p.join(await getDatabasesPath(), defaultFileName);
     final opened = await _factory.openDatabase(
       path,
       options: OpenDatabaseOptions(
