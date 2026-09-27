@@ -82,3 +82,29 @@ jobs:
                           start=max(0,i-20); end=min(len(lines),i+50)
                           print("\n".join(lines[start:end]))
           PY
+
+
+      - name: Inspect package CSV schema importer
+        shell: bash
+        run: |
+          cd /tmp
+          if [ ! -d /tmp/mcpassure/package ]; then
+            npm pack @mcpassure/mcp-anvisa-bulario@2.1.10 --silent
+            mkdir -p /tmp/mcpassure
+            tar -xzf mcpassure-mcp-anvisa-bulario-2.1.10.tgz -C /tmp/mcpassure
+          fi
+          python3 - <<'PY'
+          from pathlib import Path
+          root=Path("/tmp/mcpassure/package")
+          for path in sorted(root.rglob("*.js")):
+              try:
+                  text=path.read_text(encoding="utf-8")
+              except Exception:
+                  continue
+              if (
+                  "numero_registro" in text
+                  and ("csv" in path.name.lower() or "import" in path.name.lower() or "dataset" in path.name.lower())
+              ):
+                  print("\n###", path.relative_to(root))
+                  print(text[:30000])
+          PY
