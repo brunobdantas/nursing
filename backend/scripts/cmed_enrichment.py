@@ -526,14 +526,14 @@ async def enrich_cmed(
             )
         )
     if product_enrichment:
+        table = MedicationProduct.__table__
         stmt = (
-            update(MedicationProduct)
-            .where(MedicationProduct.id == bindparam("p_id"))
+            table.update()
+            .where(table.c.id == bindparam("p_id"))
             .values(
                 therapeutic_class=bindparam("therapeutic_class"),
                 product_type=bindparam("product_type"),
             )
-            .execution_options(synchronize_session=False)
         )
         await session.execute(stmt, list(product_enrichment.values()))
 
