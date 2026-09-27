@@ -13,16 +13,12 @@ void main() {
 
   test('recent medication persists across repository instances', () async {
     final preferences = await SharedPreferences.getInstance();
-    final firstRepository = SharedPreferencesRecentMedicationRepository(
-      preferences: preferences,
-    );
+    final firstRepository = SharedPreferencesRecentMedicationRepository();
     final medication = sampleMedicationDetail();
 
     await firstRepository.recordMedication(medication);
 
-    final secondRepository = SharedPreferencesRecentMedicationRepository(
-      preferences: preferences,
-    );
+    final secondRepository = SharedPreferencesRecentMedicationRepository();
     final recent = await secondRepository.loadRecent();
 
     expect(recent, hasLength(1));
@@ -33,9 +29,7 @@ void main() {
 
   test('recording same medication deduplicates history', () async {
     final preferences = await SharedPreferences.getInstance();
-    final repository = SharedPreferencesRecentMedicationRepository(
-      preferences: preferences,
-    );
+    final repository = SharedPreferencesRecentMedicationRepository();
     final medication = sampleMedicationDetail();
 
     await repository.recordMedication(medication);
@@ -51,9 +45,7 @@ void main() {
       SharedPreferencesRecentMedicationRepository.storageKey,
       '{not-json',
     );
-    final repository = SharedPreferencesRecentMedicationRepository(
-      preferences: preferences,
-    );
+    final repository = SharedPreferencesRecentMedicationRepository();
 
     final recent = await repository.loadRecent();
 
