@@ -103,6 +103,9 @@ void main() {
       findsOneWidget,
     );
 
+    await tester.drag(find.byType(ListView), const Offset(0, -520));
+    await tester.pumpAndSettle();
+
     expect(find.text('Medicamento Recente'), findsOneWidget);
     expect(find.text('substância recente'), findsOneWidget);
     expect(
