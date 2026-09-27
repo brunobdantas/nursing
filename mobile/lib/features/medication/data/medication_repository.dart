@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:decimal/decimal.dart';
 
-import '../../../core/storage/clinicaldatabase.dart';
+import '../../../core/storage/clinical_database.dart';
 import 'medication_models.dart';
 
 enum MedicationRepositoryErrorKind {
