@@ -33,6 +33,21 @@ void main() {
       expect(find.text('Medicamento Teste'), findsOneWidget);
       expect(find.text('dipirona'), findsOneWidget);
       expect(find.text('Alertas'), findsOneWidget);
+      expect(find.text('Analgésicos e antipiréticos'), findsOneWidget);
+      expect(find.text('Referência'), findsOneWidget);
+
+      await tester.drag(find.byType(ListView), const Offset(0, -560));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Bula e fontes oficiais'), findsOneWidget);
+      expect(
+        find.text('Cadastro regulatório: Anvisa • apresentações: CMED'),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey<String>('open-professional-leaflet')),
+        findsOneWidget,
+      );
 
       await tester.drag(find.byType(ListView), const Offset(0, -420));
       await tester.pumpAndSettle();
