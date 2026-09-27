@@ -117,8 +117,8 @@ async def test_search_returns_active_ingredients_and_products_contract():
     session = MagicMock()
     session.scalars = AsyncMock(
         side_effect=[
-            FakeScalarResult([product]),
             FakeScalarResult([ingredient]),
+            FakeScalarResult([product]),
         ]
     )
     app = _app_with_session(session)
@@ -256,8 +256,8 @@ async def test_sync_content_returns_versioned_active_release_with_etag_and_gzip(
 
         session.scalars = AsyncMock(
             side_effect=[
-                FakeScalarResult([ingredient]),
                 FakeScalarResult([product]),
+                FakeScalarResult([ingredient]),
             ]
         )
         not_modified = await client.get(
