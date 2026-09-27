@@ -1,0 +1,50 @@
+name: Bulário Source Probe
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/bulario_probe.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Download official Bulário CSVs
+        shell: bash
+        run: |
+          curl --fail --show-error --location --retry 3             https://dados.anvisa.gov.br/dados/CONSULTAS/DOCUMENTOS/TA_CONSULTA_BULA_PRODUTO.CSV             -o /tmp/bula_produto.csv
+          curl --fail --show-error --location --retry 3             https://dados.anvisa.gov.br/dados/CONSULTAS/DOCUMENTOS/TA_CONSULTA_BULA_DOCUMENTO.CSV             -o /tmp/bula_documento.csv
+
+      - name: Inspect schema and sample rows
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import csv
+          from pathlib import Path
+
+          def decode(path):
+              raw=Path(path).read_bytes()
+              for enc in ("utf-8-sig","utf-8","latin1","cp1252"):
+                  try:
+                      return raw.decode(enc), enc
+                  except UnicodeDecodeError:
+                      pass
+              raise RuntimeError(path)
+
+          for path in ("/tmp/bula_produto.csv","/tmp/bula_documento.csv"):
+              text,enc=decode(path)
+              sample=text[:65536]
+              delimiter=";" if sample.count(";") >= sample.count(",") else ","
+              rows=csv.reader(text.splitlines(), delimiter=delimiter)
+              print("FILE", Path(path).name, "ENCODING", enc, "DELIMITER", repr(delimiter))
+              for i,row in enumerate(rows):
+                  print("ROW",i,row)
+                  if i>=3:
+                      break
+          PY
