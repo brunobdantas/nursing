@@ -289,3 +289,193 @@ jobs:
           JS
           cd /tmp
           node /tmp/capture-by-registration.mjs
+
+
+      - name: Resolve professional leaflet from exact Bulário API contract
+        shell: bash
+        run: |
+          cat > /tmp/resolve-professional-bula.mjs <<'JS'
+          import { chromium } from 'playwright';
+          import fs from 'node:fs';
+
+          const registration = '103460005';
+          const browser = await chromium.launch({
+            headless: true,
+            args: ['--disable-blink-features=AutomationControlled'],
+          });
+          const context = await browser.newContext({
+            userAgent:
+              'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 ' +
+              '(KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
+          });
+          const page = await context.newPage();
+          await page.goto('https://consultas.anvisa.gov.br/#/bulario/', {
+            waitUntil: 'networkidle',
+            timeout: 120000,
+          });
+          await page.waitForTimeout(3000);
+
+          const result = await page.evaluate(async (reg) => {
+            const params = new URLSearchParams({
+              column: '',
+              count: '10',
+              'filter[numeroRegistro]': reg,
+              order: 'asc',
+              page: '1',
+            });
+            const response = await fetch(
+              '/api/consulta/bulario?' + params.toString(),
+              {
+                headers: { Accept: 'application/json' },
+                credentials: 'include',
+              },
+            );
+            return { status: response.status, text: await response.text() };
+          }, registration);
+
+          console.log('EXACT_SEARCH_STATUS', result.status);
+          if (result.status !== 200) {
+            console.log('EXACT_SEARCH_BODY', result.text.slice(0, 4000));
+            await browser.close();
+            process.exit(0);
+          }
+
+          const parsed = JSON.parse(result.text);
+          console.log('EXACT_SEARCH_COUNT', parsed.content?.length ?? 0);
+          const first = parsed.content?.[0];
+          if (!first) {
+            await browser.close();
+            process.exit(0);
+          }
+          console.log('EXACT_ITEM_KEYS', Object.keys(first).sort());
+          const safeItem = { ...first };
+          for (const key of Object.keys(safeItem)) {
+            if (/codigoBula|Protegido|token|jwt/i.test(key)) {
+              safeItem[key] = safeItem[key] ? '<present>' : null;
+            }
+          }
+          console.log('EXACT_ITEM_SAFE', JSON.stringify(safeItem));
+
+          const processNumber =
+            first.numeroProcesso ??
+            first.numProcesso ??
+            first.processo ??
+            first.processoProduto;
+          console.log('EXACT_PROCESS', processNumber ?? null);
+
+          let professionalToken =
+            first.codigoBulaProfissional ??
+            first.idBulaProfissionalProtegido;
+
+          if (!professionalToken && processNumber) {
+            const detail = await page.evaluate(async (process) => {
+              const response = await fetch(
+                '/api/consulta/medicamento/produtos/' +
+                  encodeURIComponent(String(process)),
+                {
+                  headers: { Accept: 'application/json' },
+                  credentials: 'include',
+                },
+              );
+              return { status: response.status, text: await response.text() };
+            }, processNumber);
+            console.log('EXACT_DETAIL_STATUS', detail.status);
+            if (detail.status === 200) {
+              const value = JSON.parse(detail.text);
+              console.log('EXACT_DETAIL_KEYS', Object.keys(value).sort());
+              professionalToken =
+                value.codigoBulaProfissional ??
+                value.idBulaProfissionalProtegido;
+              console.log('EXACT_DETAIL_HAS_PROF_TOKEN', Boolean(professionalToken));
+            }
+          } else {
+            console.log('EXACT_ITEM_HAS_PROF_TOKEN', Boolean(professionalToken));
+          }
+
+          if (!professionalToken) {
+            await browser.close();
+            process.exit(0);
+          }
+
+          const linkResult = await page.evaluate(async (token) => {
+            const response = await fetch(
+              '/api/consulta/medicamentos/arquivo/bula/parecer/' +
+                encodeURIComponent(token) +
+                '/',
+              {
+                headers: { Accept: 'application/json' },
+                credentials: 'include',
+              },
+            );
+            return { status: response.status, text: await response.text() };
+          }, professionalToken);
+          console.log('EXACT_LINK_STATUS', linkResult.status);
+          if (linkResult.status !== 200) {
+            console.log('EXACT_LINK_BODY', linkResult.text.slice(0, 3000));
+            await browser.close();
+            process.exit(0);
+          }
+
+          let link;
+          try {
+            const value = JSON.parse(linkResult.text);
+            link = typeof value === 'string' ? value : (value.link ?? value.url);
+          } catch {
+            link = linkResult.text.replace(/^"|"$/g, '');
+          }
+          console.log('EXACT_LINK_PRESENT', Boolean(link));
+          if (!link) {
+            await browser.close();
+            process.exit(0);
+          }
+
+          const pdf = await page.evaluate(async (url) => {
+            const response = await fetch(url, { credentials: 'include' });
+            const bytes = new Uint8Array(await response.arrayBuffer());
+            let binary = '';
+            const chunk = 0x8000;
+            for (let offset = 0; offset < bytes.length; offset += chunk) {
+              binary += String.fromCharCode(
+                ...bytes.subarray(offset, Math.min(bytes.length, offset + chunk)),
+              );
+            }
+            return {
+              status: response.status,
+              contentType: response.headers.get('content-type'),
+              base64: btoa(binary),
+            };
+          }, link);
+          const body = Buffer.from(pdf.base64, 'base64');
+          console.log('EXACT_PDF_STATUS', pdf.status);
+          console.log('EXACT_PDF_CONTENT_TYPE', pdf.contentType);
+          console.log('EXACT_PDF_BYTES', body.length);
+          console.log('EXACT_PDF_MAGIC', body.subarray(0, 8).toString('latin1'));
+          if (pdf.status === 200 && body.subarray(0, 4).toString('latin1') === '%PDF') {
+            fs.writeFileSync('/tmp/exact_professional_leaflet.pdf', body);
+          }
+          await browser.close();
+          JS
+          cd /tmp
+          node /tmp/resolve-professional-bula.mjs
+          if [ -f /tmp/exact_professional_leaflet.pdf ]; then
+            python3 -m pip install --quiet 'pypdf>=5,<7'
+            python3 - <<'PY'
+          from pypdf import PdfReader
+          reader=PdfReader("/tmp/exact_professional_leaflet.pdf")
+          text="\n".join((page.extract_text() or "") for page in reader.pages)
+          print("EXACT_PDF_PAGES", len(reader.pages))
+          print("EXACT_PDF_TEXT_CHARS", len(text))
+          upper=text.upper()
+          print("EXACT_PDF_HEADINGS", [
+              heading for heading in (
+                  "INDICAÇÕES",
+                  "CONTRAINDICAÇÕES",
+                  "ADVERTÊNCIAS E PRECAUÇÕES",
+                  "INTERAÇÕES MEDICAMENTOSAS",
+                  "POSOLOGIA E MODO DE USAR",
+                  "REAÇÕES ADVERSAS",
+              ) if heading in upper
+          ])
+          print("EXACT_PDF_PREFIX", repr(text[:1600]))
+          PY
+          fi
