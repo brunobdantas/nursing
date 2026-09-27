@@ -54,6 +54,41 @@ def _workbook_bytes() -> bytes:
     return output.getvalue()
 
 
+
+def _variant_workbook_bytes() -> bytes:
+    workbook = Workbook()
+    sheet = workbook.active
+    for index in range(45):
+        sheet.append([f"Nota regulatória {index + 1}"])
+    sheet.append(
+        [
+            "REGISTRO ANVISA",
+            "PRODUTO",
+            "APRESENTAÇÃO COMERCIAL",
+            "CÓDIGO GGREM",
+        ]
+    )
+    sheet.append(
+        [
+            "101160143",
+            "CEFACLOR",
+            "250 MG / 5 ML PO P/ SUS OR FR VD AMB X 100 ML",
+            "1234567890123",
+        ]
+    )
+    output = io.BytesIO()
+    workbook.save(output)
+    return output.getvalue()
+
+
+def test_cmed_workbook_accepts_deep_header_and_column_variants() -> None:
+    frame = load_cmed_dataframe(_variant_workbook_bytes())
+
+    assert "REGISTRO" in frame.columns
+    assert "APRESENTACAO" in frame.columns
+    assert frame.iloc[0]["REGISTRO"] == "101160143"
+    assert frame.iloc[0]["APRESENTACAO"].startswith("250 MG / 5 ML")
+
 def test_cmed_portal_download_link_accepts_download_suffix() -> None:
     page = (
         '<a href="./arquivos/xls_conformidade_site_20260909_222937320.xlsx/'
