@@ -27,6 +27,10 @@ void main() {
     expect(find.text('Medicamento Teste'), findsOneWidget);
     expect(find.text('dipirona'), findsOneWidget);
     expect(find.text('Alertas'), findsOneWidget);
+
+    await tester.drag(find.byType(ListView), const Offset(0, -420));
+    await tester.pumpAndSettle();
+
     expect(find.text('Ampola 500 mg/mL'), findsOneWidget);
     expect(find.text('Validada para cálculo'), findsOneWidget);
 
