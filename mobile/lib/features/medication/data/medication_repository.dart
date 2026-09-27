@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:decimal/decimal.dart';
 
-import '../../../core/storage/clinical_database.dart';
+import '../../../core/storage/clinicaldatabase.dart';
 import 'medication_models.dart';
 
 enum MedicationRepositoryErrorKind {
@@ -39,10 +39,10 @@ abstract interface class MedicationRepository {
 
 final class LocalMedicationRepository implements MedicationRepository {
   const LocalMedicationRepository({
-    required ClinicalDatabase database,
-  }) : _database = database;
+    required this.database,
+  });
 
-  final ClinicalDatabase _database;
+  final ClinicalDatabase database;
 
   @override
   Future<MedicationSearchResponse> searchMedications(String query) async {
@@ -58,10 +58,10 @@ final class LocalMedicationRepository implements MedicationRepository {
     final normalizedQuery = _normalizeSearchTerm(trimmed);
 
     try {
-      final ingredientRows = await _database.queryIngredientMatches(
+      final ingredientRows = await database.queryIngredientMatches(
         normalizedQuery,
       );
-      final medicationRows = await _database.queryMedicationMatches(
+      final medicationRows = await database.queryMedicationMatches(
         normalizedQuery,
       );
 
@@ -84,11 +84,11 @@ final class LocalMedicationRepository implements MedicationRepository {
 
       if (items.isEmpty) {
         final approximateIngredientRows =
-            await _database.queryApproximateIngredients(
+            await database.queryApproximateIngredients(
           normalizedQuery.length,
         );
         final approximateMedicationRows =
-            await _database.queryApproximateMedications(
+            await database.queryApproximateMedications(
           normalizedQuery.length,
         );
 
@@ -176,7 +176,7 @@ final class LocalMedicationRepository implements MedicationRepository {
     }
 
     try {
-      final medication = await _database.medicationById(normalizedId);
+      final medication = await database.medicationById(normalizedId);
       if (medication == null) {
         throw const MedicationRepositoryException(
           kind: MedicationRepositoryErrorKind.notFound,
@@ -184,10 +184,10 @@ final class LocalMedicationRepository implements MedicationRepository {
         );
       }
 
-      final ingredientRows = await _database.ingredientsForMedication(
+      final ingredientRows = await database.ingredientsForMedication(
         normalizedId,
       );
-      final presentationRows = await _database.presentationsForMedication(
+      final presentationRows = await database.presentationsForMedication(
         normalizedId,
       );
 
