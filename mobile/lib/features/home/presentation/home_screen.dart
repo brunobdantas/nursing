@@ -176,10 +176,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   style: theme.textTheme.headlineSmall,
                 ),
                 const SizedBox(height: 12),
-                _SyncStatusCard(
-                  status: _syncStatus,
-                  onRetry: _retrySync,
-                ),
+                _SyncStatusCard(status: _syncStatus, onRetry: _retrySync),
                 const SizedBox(height: 16),
                 Semantics(
                   button: true,
@@ -347,10 +344,7 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class _SyncStatusCard extends StatelessWidget {
-  const _SyncStatusCard({
-    required this.status,
-    required this.onRetry,
-  });
+  const _SyncStatusCard({required this.status, required this.onRetry});
 
   final ClinicalSyncStatus? status;
   final VoidCallback onRetry;

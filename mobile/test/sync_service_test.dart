@@ -10,107 +10,110 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 void main() {
   setUpAll(sqfliteFfiInit);
 
-  test('API endpoint stores release and later uses clinical ETag 304', () async {
-    final database = _database();
-    addTearDown(database.close);
+  test(
+    'API endpoint stores release and later uses clinical ETag 304',
+    () async {
+      final database = _database();
+      addTearDown(database.close);
 
-    var calls = 0;
-    final client = MockClient((request) async {
-      calls += 1;
-      expect(request.url.path, '/v1/sync/content');
-      expect(request.headers['accept-encoding'], 'gzip');
+      var calls = 0;
+      final client = MockClient((request) async {
+        calls += 1;
+        expect(request.url.path, '/v1/sync/content');
+        expect(request.headers['accept-encoding'], 'gzip');
 
-      if (calls == 1) {
-        expect(request.headers['if-none-match'], isNull);
-        return _releaseResponse();
-      }
+        if (calls == 1) {
+          expect(request.headers['if-none-match'], isNull);
+          return _releaseResponse();
+        }
 
-      expect(
-        request.headers['if-none-match'],
-        '"clinical-release-v1-testhash"',
-      );
-      return http.Response('', 304);
-    });
+        expect(
+          request.headers['if-none-match'],
+          '"clinical-release-v1-testhash"',
+        );
+        return http.Response('', 304);
+      });
 
-    final service = SyncService(
-      endpoints: <SyncEndpoint>[
-        SyncEndpoint.api(
-          label: 'API clínica',
-          baseUri: Uri.parse('https://api.example.test'),
-        ),
-      ],
-      database: database,
-      client: client,
-      retryBaseDelay: Duration.zero,
-    );
-
-    final first = await service.syncIfNeeded();
-    expect(first.state, ClinicalSyncState.updated);
-    expect(first.hasLocalContent, isTrue);
-
-    final second = await service.syncIfNeeded();
-    expect(second.state, ClinicalSyncState.current);
-    expect(calls, 2);
-  });
-
-  test('falls back from failed API to public static clinical release', () async {
-    final database = _database();
-    addTearDown(database.close);
-
-    final requestedHosts = <String>[];
-    final statuses = <ClinicalSyncStatus>[];
-    final client = MockClient((request) async {
-      requestedHosts.add(request.url.host);
-      if (request.url.host == 'api.example.test') {
-        return http.Response('temporarily unavailable', 503);
-      }
-      return _releaseResponse();
-    });
-
-    final service = SyncService(
-      endpoints: <SyncEndpoint>[
-        SyncEndpoint.api(
-          label: 'API clínica',
-          baseUri: Uri.parse('https://api.example.test'),
-        ),
-        SyncEndpoint.staticRelease(
-          label: 'Base clínica pública',
-          uri: Uri.parse(
-            'https://raw.githubusercontent.com/example/release.json',
+      final service = SyncService(
+        endpoints: <SyncEndpoint>[
+          SyncEndpoint.api(
+            label: 'API clínica',
+            baseUri: Uri.parse('https://api.example.test'),
           ),
-        ),
-      ],
-      database: database,
-      client: client,
-      maxAttemptsPerEndpoint: 2,
-      retryBaseDelay: Duration.zero,
-    );
+        ],
+        database: database,
+        client: client,
+        retryBaseDelay: Duration.zero,
+      );
 
-    final result = await service.syncIfNeeded(onStatus: statuses.add);
+      final first = await service.syncIfNeeded();
+      expect(first.state, ClinicalSyncState.updated);
+      expect(first.hasLocalContent, isTrue);
 
-    expect(result.state, ClinicalSyncState.updated);
-    expect(result.sourceLabel, 'Base clínica pública');
-    expect(await database.hasClinicalContent(), isTrue);
-    expect(
-      requestedHosts,
-      <String>[
+      final second = await service.syncIfNeeded();
+      expect(second.state, ClinicalSyncState.current);
+      expect(calls, 2);
+    },
+  );
+
+  test(
+    'falls back from failed API to public static clinical release',
+    () async {
+      final database = _database();
+      addTearDown(database.close);
+
+      final requestedHosts = <String>[];
+      final statuses = <ClinicalSyncStatus>[];
+      final client = MockClient((request) async {
+        requestedHosts.add(request.url.host);
+        if (request.url.host == 'api.example.test') {
+          return http.Response('temporarily unavailable', 503);
+        }
+        return _releaseResponse();
+      });
+
+      final service = SyncService(
+        endpoints: <SyncEndpoint>[
+          SyncEndpoint.api(
+            label: 'API clínica',
+            baseUri: Uri.parse('https://api.example.test'),
+          ),
+          SyncEndpoint.staticRelease(
+            label: 'Base clínica pública',
+            uri: Uri.parse(
+              'https://raw.githubusercontent.com/example/release.json',
+            ),
+          ),
+        ],
+        database: database,
+        client: client,
+        maxAttemptsPerEndpoint: 2,
+        retryBaseDelay: Duration.zero,
+      );
+
+      final result = await service.syncIfNeeded(onStatus: statuses.add);
+
+      expect(result.state, ClinicalSyncState.updated);
+      expect(result.sourceLabel, 'Base clínica pública');
+      expect(await database.hasClinicalContent(), isTrue);
+      expect(requestedHosts, <String>[
         'api.example.test',
         'api.example.test',
         'raw.githubusercontent.com',
-      ],
-    );
-    expect(
-      statuses.map((item) => item.state),
-      containsAllInOrder(<ClinicalSyncState>[
-        ClinicalSyncState.checking,
-        ClinicalSyncState.downloading,
-        ClinicalSyncState.downloading,
-        ClinicalSyncState.downloading,
-        ClinicalSyncState.validating,
-        ClinicalSyncState.installing,
-      ]),
-    );
-  });
+      ]);
+      expect(
+        statuses.map((item) => item.state),
+        containsAllInOrder(<ClinicalSyncState>[
+          ClinicalSyncState.checking,
+          ClinicalSyncState.downloading,
+          ClinicalSyncState.downloading,
+          ClinicalSyncState.downloading,
+          ClinicalSyncState.validating,
+          ClinicalSyncState.installing,
+        ]),
+      );
+    },
+  );
 
   test('generic CDN ETag does not invalidate a valid static release', () async {
     final database = _database();
@@ -196,10 +199,7 @@ void main() {
 
     expect(status.state, ClinicalSyncState.offlineAvailable);
     expect(status.hasLocalContent, isTrue);
-    expect(
-      await database.getContentVersion(),
-      'clinical-release-v1-testhash',
-    );
+    expect(await database.getContentVersion(), 'clinical-release-v1-testhash');
     expect(await database.medicationById('med-1'), isNotNull);
   });
 }

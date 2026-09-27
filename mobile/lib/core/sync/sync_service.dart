@@ -58,8 +58,9 @@ final class ClinicalSyncStatus {
       case ClinicalSyncState.checking:
         return 'Verificando atualização da base clínica';
       case ClinicalSyncState.downloading:
-        final attemptText =
-            attempt != null && maxAttempts != null ? ' • tentativa $attempt/$maxAttempts' : '';
+        final attemptText = attempt != null && maxAttempts != null
+            ? ' • tentativa $attempt/$maxAttempts'
+            : '';
         final sourceText = sourceLabel == null ? '' : ' • $sourceLabel';
         return 'Baixando base clínica$sourceText$attemptText';
       case ClinicalSyncState.validating:
@@ -85,10 +86,7 @@ final class SyncEndpoint {
     this.supportsClinicalEtag = false,
   });
 
-  factory SyncEndpoint.api({
-    required String label,
-    required Uri baseUri,
-  }) {
+  factory SyncEndpoint.api({required String label, required Uri baseUri}) {
     final basePath = baseUri.path.endsWith('/')
         ? baseUri.path.substring(0, baseUri.path.length - 1)
         : baseUri.path;
