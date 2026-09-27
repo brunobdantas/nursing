@@ -1,0 +1,134 @@
+name: Clinical Release Publisher
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '17 5 * * 1'
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+      - '.github/workflows/clinical_release_publish.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: clinical-release-publisher
+  cancel-in-progress: false
+
+jobs:
+  publish-clinical-release:
+    name: publish-clinical-release
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_DB: nursing_mvp
+          POSTGRES_USER: nursing_app
+          POSTGRES_PASSWORD: nursing_app_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U nursing_app -d nursing_mvp"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
+    env:
+      DATABASE_URL: postgresql+asyncpg://nursing_app:nursing_app_ci@localhost:5432/nursing_mvp
+      PYTHONPATH: .
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install backend dependencies
+        run: pip install -r requirements.txt
+
+      - name: Migrate clinical database
+        run: alembic -c alembic.ini upgrade head
+
+      - name: Ingest latest ANVISA open data
+        run: python scripts/etl_anvisa.py
+
+      - name: Resolve canonical medication entities
+        run: python scripts/entity_resolution.py
+
+      - name: Curate safe structured concentrations
+        run: python scripts/clinical_curation.py
+
+      - name: Start sync API locally
+        shell: bash
+        run: |
+          python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 > /tmp/nursing-api.log 2>&1 &
+          echo $! > /tmp/nursing-api.pid
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:8000/openapi.json > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/nursing-api.log
+          exit 1
+
+      - name: Export public clinical release
+        shell: bash
+        run: |
+          mkdir -p ../clinical-releases
+          curl --fail --show-error --silent             http://127.0.0.1:8000/v1/sync/content             -o ../clinical-releases/clinical-release-v1.json
+
+      - name: Validate exported release
+        working-directory: .
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          path = Path("clinical-releases/clinical-release-v1.json")
+          data = json.loads(path.read_text(encoding="utf-8"))
+          assert data["release_schema"] == "clinical-release-v1"
+          assert data["content_version"].startswith("clinical-release-v1-")
+          assert len(data["active_ingredients"]) > 0
+          assert len(data["medications"]) > 0
+          print(
+              "release:",
+              data["content_version"],
+              "ingredients:",
+              len(data["active_ingredients"]),
+              "medications:",
+              len(data["medications"]),
+              "presentations:",
+              len(data["presentations"]),
+          )
+          PY
+
+      - name: Publish release JSON to repository
+        working-directory: .
+        shell: bash
+        run: |
+          if git diff --quiet -- clinical-releases/clinical-release-v1.json; then
+            echo "Clinical release unchanged."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add clinical-releases/clinical-release-v1.json
+          git commit -m "data: publish latest clinical release"
+          git push origin HEAD:main

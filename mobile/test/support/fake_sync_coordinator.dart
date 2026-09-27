@@ -4,6 +4,7 @@ final class FakeClinicalSyncCoordinator implements ClinicalSyncCoordinator {
   FakeClinicalSyncCoordinator({
     ClinicalSyncStatus? localStatus,
     ClinicalSyncStatus? syncStatus,
+    List<ClinicalSyncStatus>? progressStatuses,
   }) : localStatusValue =
            localStatus ??
            const ClinicalSyncStatus(
@@ -17,10 +18,12 @@ final class FakeClinicalSyncCoordinator implements ClinicalSyncCoordinator {
              state: ClinicalSyncState.current,
              hasLocalContent: true,
              contentVersion: 'clinical-release-v1-test',
-           );
+           ),
+       progressStatuses = progressStatuses ?? const <ClinicalSyncStatus>[];
 
   ClinicalSyncStatus localStatusValue;
   ClinicalSyncStatus syncStatusValue;
+  List<ClinicalSyncStatus> progressStatuses;
   int localStatusCalls = 0;
   int syncCalls = 0;
 
@@ -31,8 +34,13 @@ final class FakeClinicalSyncCoordinator implements ClinicalSyncCoordinator {
   }
 
   @override
-  Future<ClinicalSyncStatus> syncIfNeeded() async {
+  Future<ClinicalSyncStatus> syncIfNeeded({
+    void Function(ClinicalSyncStatus status)? onStatus,
+  }) async {
     syncCalls += 1;
+    for (final status in progressStatuses) {
+      onStatus?.call(status);
+    }
     return syncStatusValue;
   }
 }

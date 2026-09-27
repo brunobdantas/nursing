@@ -59,17 +59,21 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
     setState(() {
-      _syncStatus = ClinicalSyncStatus(
-        state: ClinicalSyncState.syncing,
-        hasLocalContent: localStatus.hasLocalContent,
-        contentVersion: localStatus.contentVersion,
-        lastSyncAt: localStatus.lastSyncAt,
-      );
+      _syncStatus = localStatus;
     });
 
     ClinicalSyncStatus syncStatus;
     try {
-      syncStatus = await widget.syncCoordinator.syncIfNeeded();
+      syncStatus = await widget.syncCoordinator.syncIfNeeded(
+        onStatus: (status) {
+          if (!mounted) {
+            return;
+          }
+          setState(() {
+            _syncStatus = status;
+          });
+        },
+      );
     } catch (_) {
       syncStatus = ClinicalSyncStatus(
         state: localStatus.hasLocalContent
@@ -119,6 +123,34 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  Future<void> _retrySync() async {
+    if (_syncStatus?.isBusy ?? false) {
+      return;
+    }
+
+    final status = await widget.syncCoordinator.syncIfNeeded(
+      onStatus: (status) {
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _syncStatus = status;
+        });
+      },
+    );
+
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _syncStatus = status;
+    });
+
+    if (status.state == ClinicalSyncState.updated) {
+      await _loadLocalLists();
+    }
+  }
+
   Future<void> _openAndRefresh(String route) async {
     await context.push(route);
     if (mounted) {
@@ -142,6 +174,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 Text(
                   'O que você precisa fazer agora?',
                   style: theme.textTheme.headlineSmall,
+                ),
+                const SizedBox(height: 12),
+                _SyncStatusCard(
+                  status: _syncStatus,
+                  onRetry: _retrySync,
                 ),
                 const SizedBox(height: 16),
                 Semantics(
@@ -281,8 +318,6 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                 const SizedBox(height: 22),
-                _SyncStatusCard(status: _syncStatus),
-                const SizedBox(height: 14),
                 Row(
                   children: [
                     Icon(
@@ -312,9 +347,13 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class _SyncStatusCard extends StatelessWidget {
-  const _SyncStatusCard({required this.status});
+  const _SyncStatusCard({
+    required this.status,
+    required this.onRetry,
+  });
 
   final ClinicalSyncStatus? status;
+  final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
@@ -324,7 +363,10 @@ class _SyncStatusCard extends StatelessWidget {
     final icon = switch (current?.state) {
       ClinicalSyncState.current ||
       ClinicalSyncState.updated => Icons.offline_pin_outlined,
-      ClinicalSyncState.syncing => Icons.sync_rounded,
+      ClinicalSyncState.checking ||
+      ClinicalSyncState.downloading ||
+      ClinicalSyncState.validating ||
+      ClinicalSyncState.installing => Icons.sync_rounded,
       ClinicalSyncState.offlineAvailable => Icons.cloud_off_outlined,
       ClinicalSyncState.notDownloaded ||
       ClinicalSyncState.unavailable => Icons.warning_amber_rounded,

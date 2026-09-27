@@ -143,7 +143,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.text('Base clínica disponível offline • sincronização pendente'),
+      find.text('Base clínica disponível offline • atualização pendente'),
       findsOneWidget,
     );
     expect(syncCoordinator.syncCalls, 1);

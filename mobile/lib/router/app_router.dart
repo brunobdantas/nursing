@@ -21,7 +21,14 @@ final SharedPreferencesRecentMedicationRepository recentMedicationRepository =
 final LocalFavoriteMedicationRepository favoriteMedicationRepository =
     LocalFavoriteMedicationRepository(database: clinicalDatabase);
 final SyncService syncService = SyncService(
-  baseUri: ApiConfig.baseUri,
+  endpoints: <SyncEndpoint>[
+    if (ApiConfig.apiBaseUri case final apiBaseUri?)
+      SyncEndpoint.api(label: 'API clínica', baseUri: apiBaseUri),
+    SyncEndpoint.staticRelease(
+      label: 'Base clínica pública',
+      uri: ApiConfig.publicClinicalReleaseUri,
+    ),
+  ],
   database: clinicalDatabase,
 );
 
