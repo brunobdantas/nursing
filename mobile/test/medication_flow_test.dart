@@ -1,0 +1,80 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:nursing_clinical_core/features/calculator/presentation/calculator_screen.dart';
+import 'package:nursing_clinical_core/features/medication/presentation/medication_detail_screen.dart';
+import 'package:nursing_clinical_core/theme/clinical_theme.dart';
+
+import 'support/fake_medication_repository.dart';
+
+void main() {
+  testWidgets('medication detail renders identity, alerts and selected presentation', (
+    tester,
+  ) async {
+    final repository = FakeMedicationRepository();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ClinicalTheme.light(),
+        home: MedicationDetailScreen(
+          medicationId: repository.detailResponse.id,
+          repository: repository,
+          startCalculationFlow: true,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Medicamento Teste'), findsOneWidget);
+    expect(find.text('dipirona'), findsOneWidget);
+    expect(find.text('Alertas'), findsOneWidget);
+    expect(find.text('Ampola 500 mg/mL'), findsOneWidget);
+    expect(find.text('Validada para cálculo'), findsOneWidget);
+
+    final button = tester.widget<FilledButton>(
+      find.byKey(const ValueKey<String>('calculate-dose-button')),
+    );
+    expect(button.onPressed, isNotNull);
+  });
+
+  testWidgets('calculator connects prescribed dose to CalculationCore memory', (
+    tester,
+  ) async {
+    final repository = FakeMedicationRepository();
+    final detail = repository.detailResponse;
+    final presentation = detail.presentations.single;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ClinicalTheme.light(),
+        home: CalculatorScreen(
+          medicationId: detail.id,
+          presentationId: presentation.id,
+          repository: repository,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Concentração estruturada: 500 mg / 1 mL'), findsOneWidget);
+
+    await tester.enterText(
+      find.byKey(const ValueKey<String>('prescribed-dose-field')),
+      '750',
+    );
+    await tester.tap(
+      find.byKey(const ValueKey<String>('run-dose-calculation')),
+    );
+    await tester.pump();
+
+    expect(
+      find.byKey(const ValueKey<String>('calculation-result-card')),
+      findsOneWidget,
+    );
+    expect(find.text('1.5 mL'), findsOneWidget);
+    expect(find.text('Memória de Cálculo'), findsOneWidget);
+    expect(
+      find.text('Volume: 750 mg × 1 mL ÷ 500 mg = 1.5 mL'),
+      findsOneWidget,
+    );
+  });
+}
