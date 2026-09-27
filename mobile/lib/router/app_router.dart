@@ -2,19 +2,28 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../core/network/api_config.dart';
+import '../core/storage/clinical_database.dart';
+import '../core/sync/sync_service.dart';
 import '../features/calculator/presentation/calculator_screen.dart';
 import '../features/calculator/presentation/fluid_calculator_screens.dart';
+import '../features/home/data/favorite_medication_repository.dart';
 import '../features/home/data/recent_medication_repository.dart';
 import '../features/home/presentation/home_screen.dart';
 import '../features/medication/data/medication_repository.dart';
 import '../features/medication/presentation/medication_detail_screen.dart';
 import '../features/search/presentation/search_screen.dart';
 
-final HttpMedicationRepository medicationRepository = HttpMedicationRepository(
-  baseUri: ApiConfig.baseUri,
-);
+final ClinicalDatabase clinicalDatabase = ClinicalDatabase();
+final LocalMedicationRepository medicationRepository =
+    LocalMedicationRepository(database: clinicalDatabase);
 final SharedPreferencesRecentMedicationRepository recentMedicationRepository =
     SharedPreferencesRecentMedicationRepository();
+final LocalFavoriteMedicationRepository favoriteMedicationRepository =
+    LocalFavoriteMedicationRepository(database: clinicalDatabase);
+final SyncService syncService = SyncService(
+  baseUri: ApiConfig.baseUri,
+  database: clinicalDatabase,
+);
 
 final GoRouter appRouter = GoRouter(
   initialLocation: '/',
@@ -22,8 +31,11 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/',
       name: 'home',
-      builder: (context, state) =>
-          HomeScreen(recentRepository: recentMedicationRepository),
+      builder: (context, state) => HomeScreen(
+        recentRepository: recentMedicationRepository,
+        favoriteRepository: favoriteMedicationRepository,
+        syncCoordinator: syncService,
+      ),
     ),
     GoRoute(
       path: '/search',
@@ -44,6 +56,7 @@ final GoRouter appRouter = GoRouter(
           medicationId: medicationId,
           repository: medicationRepository,
           recentRepository: recentMedicationRepository,
+          favoriteRepository: favoriteMedicationRepository,
           startCalculationFlow:
               state.uri.queryParameters['calculate'] == 'true',
         );
