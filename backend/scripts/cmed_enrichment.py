@@ -533,6 +533,7 @@ async def enrich_cmed(
                 therapeutic_class=bindparam("therapeutic_class"),
                 product_type=bindparam("product_type"),
             )
+            .execution_options(synchronize_session=False)
         )
         await session.execute(stmt, list(product_enrichment.values()))
 
