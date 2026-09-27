@@ -152,28 +152,61 @@ def _latest_xlsx_url(page_html: str) -> str:
     return urljoin(CMED_INDEX_URL, sorted(decoded)[-1])
 
 
+def _canonical_cmed_header(value: Any) -> str:
+    header = _header(value)
+    aliases = (
+        ("REGISTRO", "REGISTRO"),
+        ("APRESENTACAO", "APRESENTACAO"),
+        ("CODIGO_GGREM", "CODIGO_GGREM"),
+        ("COD_GGREM", "CODIGO_GGREM"),
+        ("EAN_1", "EAN_1"),
+        ("EAN1", "EAN_1"),
+        ("CLASSE_TERAPEUTICA", "CLASSE_TERAPEUTICA"),
+        ("TIPO_DE_PRODUTO", "TIPO_DE_PRODUTO"),
+        ("PRODUTO", "PRODUTO"),
+    )
+    for prefix, canonical in aliases:
+        if header == prefix or header.startswith(f"{prefix}_"):
+            return canonical
+    return header
+
+
 def load_cmed_dataframe(content: bytes) -> pd.DataFrame:
     workbook = pd.ExcelFile(io.BytesIO(content), engine="openpyxl")
+    inspected: list[str] = []
     for sheet_name in workbook.sheet_names:
         probe = pd.read_excel(
             workbook,
             sheet_name=sheet_name,
             header=None,
-            nrows=30,
+            nrows=200,
             dtype=str,
         )
         for row_index, values in probe.iterrows():
-            headers = {_header(value) for value in values if _clean(value)}
-            if "REGISTRO" in headers and "APRESENTACAO" in headers:
+            headers = [
+                _canonical_cmed_header(value)
+                for value in values
+                if _clean(value)
+            ]
+            header_set = set(headers)
+            if "REGISTRO" in header_set and "APRESENTACAO" in header_set:
                 frame = pd.read_excel(
                     workbook,
                     sheet_name=sheet_name,
                     header=row_index,
                     dtype=str,
                 )
-                frame.columns = [_header(value) for value in frame.columns]
+                frame.columns = [
+                    _canonical_cmed_header(value) for value in frame.columns
+                ]
                 return frame
-    raise RuntimeError("CMED workbook does not contain REGISTRO/APRESENTACAO headers")
+            if headers and len(inspected) < 12:
+                inspected.append(f"{sheet_name}:{row_index + 1}={headers[:8]}")
+    preview = " | ".join(inspected)
+    raise RuntimeError(
+        "CMED workbook does not contain a recognizable registration/presentation "
+        f"header in the first 200 rows. Preview: {preview}"
+    )
 
 
 async def _download_cmed() -> tuple[str, bytes, dict[str, str]]:
