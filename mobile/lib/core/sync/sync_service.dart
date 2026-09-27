@@ -4,7 +4,7 @@ import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
-import '../storage/clinicaldatabase.dart';
+import '../storage/clinical_database.dart';
 import 'sync_models.dart';
 
 enum ClinicalSyncState {
