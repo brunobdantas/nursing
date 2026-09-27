@@ -118,3 +118,107 @@ jobs:
           print("PDF_TEXT_PREFIX", repr(text[:1800]))
           PY
           fi
+
+
+      - name: Capture Bulário UI network contract
+        shell: bash
+        run: |
+          cat > /tmp/capture-bulario-ui.mjs <<'JS'
+          import { chromium } from 'playwright';
+
+          const browser = await chromium.launch({
+            headless: true,
+            args: ['--disable-blink-features=AutomationControlled'],
+          });
+          const context = await browser.newContext({
+            userAgent:
+              'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 ' +
+              '(KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
+          });
+          const page = await context.newPage();
+          const apiEvents = [];
+          page.on('request', (request) => {
+            const url = request.url();
+            if (url.includes('/api/consulta/')) {
+              apiEvents.push({
+                type: 'request',
+                method: request.method(),
+                url,
+                postData: request.postData(),
+              });
+            }
+          });
+          page.on('response', async (response) => {
+            const url = response.url();
+            if (url.includes('/api/consulta/')) {
+              apiEvents.push({
+                type: 'response',
+                status: response.status(),
+                url,
+              });
+            }
+          });
+
+          await page.goto('https://consultas.anvisa.gov.br/#/bulario/', {
+            waitUntil: 'networkidle',
+            timeout: 120000,
+          });
+          await page.waitForTimeout(4000);
+
+          const inputs = await page.locator('input').evaluateAll((nodes) =>
+            nodes.map((node, index) => ({
+              index,
+              type: node.getAttribute('type'),
+              name: node.getAttribute('name'),
+              id: node.getAttribute('id'),
+              placeholder: node.getAttribute('placeholder'),
+              ariaLabel: node.getAttribute('aria-label'),
+            })),
+          );
+          const buttons = await page.locator('button').evaluateAll((nodes) =>
+            nodes.map((node, index) => ({
+              index,
+              text: (node.textContent ?? '').trim().replace(/\s+/g, ' '),
+              type: node.getAttribute('type'),
+              id: node.getAttribute('id'),
+              ariaLabel: node.getAttribute('aria-label'),
+            })),
+          );
+          console.log('UI_INPUTS', JSON.stringify(inputs));
+          console.log('UI_BUTTONS', JSON.stringify(buttons.slice(0, 40)));
+
+          const textInputs = page.locator('input[type="text"]');
+          const count = await textInputs.count();
+          console.log('TEXT_INPUT_COUNT', count);
+          for (let i = 0; i < count; i += 1) {
+            const input = textInputs.nth(i);
+            const placeholder = (await input.getAttribute('placeholder')) ?? '';
+            const name = (await input.getAttribute('name')) ?? '';
+            const id = (await input.getAttribute('id')) ?? '';
+            if (/medic|produto|nome/i.test(placeholder + ' ' + name + ' ' + id)) {
+              await input.fill('GLICOSE BEKER');
+              console.log('FILLED_INPUT', i, placeholder, name, id);
+              break;
+            }
+          }
+
+          const consult = page.getByRole('button', {
+            name: /consultar|pesquisar|buscar/i,
+          }).first();
+          if (await consult.count()) {
+            console.log('CLICK_BUTTON', await consult.innerText());
+            await consult.click();
+            await page.waitForTimeout(8000);
+          } else {
+            console.log('NO_CONSULT_BUTTON');
+          }
+
+          console.log('API_EVENTS', JSON.stringify(apiEvents, null, 2));
+          console.log(
+            'RESULT_TEXT',
+            (await page.locator('body').innerText()).slice(0, 12000),
+          );
+          await browser.close();
+          JS
+          cd /tmp
+          node /tmp/capture-bulario-ui.mjs
