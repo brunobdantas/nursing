@@ -7,6 +7,12 @@ on:
     paths:
       - 'mobile/**'
       - '.github/workflows/clinical_core_tests.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'mobile/**'
+      - '.github/workflows/clinical_core_tests.yml'
 
 permissions:
   contents: read
@@ -19,7 +25,7 @@ jobs:
   clinical-core-tests:
     name: clinical-core-tests
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
 
     defaults:
       run:
@@ -50,5 +56,5 @@ jobs:
       - name: Static analysis
         run: flutter analyze --fatal-infos --fatal-warnings
 
-      - name: Run clinical calculation tests
-        run: flutter test test/calculation_core_test.dart --reporter expanded
+      - name: Run mobile and clinical tests
+        run: flutter test --reporter expanded
