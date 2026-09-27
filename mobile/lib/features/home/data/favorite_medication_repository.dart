@@ -1,4 +1,4 @@
-import '../../../core/storage/clinical_database.dart';
+import '../../../core/storage/clinicaldatabase.dart';
 
 final class FavoriteMedication {
   const FavoriteMedication({
@@ -23,14 +23,14 @@ abstract interface class FavoriteMedicationRepository {
 final class LocalFavoriteMedicationRepository
     implements FavoriteMedicationRepository {
   const LocalFavoriteMedicationRepository({
-    required ClinicalDatabase database,
-  }) : _database = database;
+    required this.database,
+  });
 
-  final ClinicalDatabase _database;
+  final ClinicalDatabase database;
 
   @override
   Future<List<FavoriteMedication>> loadFavorites() async {
-    final rows = await _database.favoriteMedicationRows();
+    final rows = await database.favoriteMedicationRows();
     return rows
         .map(
           (row) => FavoriteMedication(
@@ -45,13 +45,13 @@ final class LocalFavoriteMedicationRepository
 
   @override
   Future<bool> isFavorite(String medicationId) {
-    return _database.isFavorite(medicationId);
+    return database.isFavorite(medicationId);
   }
 
   @override
   Future<bool> toggleFavorite(String medicationId) async {
-    final nextValue = !await _database.isFavorite(medicationId);
-    await _database.setFavorite(medicationId, nextValue);
+    final nextValue = !await database.isFavorite(medicationId);
+    await database.setFavorite(medicationId, nextValue);
     return nextValue;
   }
 }
