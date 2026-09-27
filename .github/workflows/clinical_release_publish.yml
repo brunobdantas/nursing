@@ -101,8 +101,13 @@ jobs:
           import json
           from pathlib import Path
 
+          import gzip
+
           path = Path("clinical-releases/clinical-release-v1.json")
-          data = json.loads(path.read_text(encoding="utf-8"))
+          gzip_path = Path("clinical-releases/clinical-release-v1.json.gz")
+          raw = path.read_bytes()
+          assert gzip.decompress(gzip_path.read_bytes()) == raw
+          data = json.loads(raw.decode("utf-8"))
           assert data["release_schema"] == "clinical-release-v1"
           assert data["content_version"].startswith("clinical-release-v1-")
           assert len(data["active_ingredients"]) > 0
@@ -123,12 +128,12 @@ jobs:
         working-directory: .
         shell: bash
         run: |
-          if [ -z "$(git status --porcelain -- clinical-releases/clinical-release-v1.json)" ]; then
+          if [ -z "$(git status --porcelain -- clinical-releases/clinical-release-v1.json clinical-releases/clinical-release-v1.json.gz)" ]; then
             echo "Clinical release unchanged."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add clinical-releases/clinical-release-v1.json
+          git add clinical-releases/clinical-release-v1.json clinical-releases/clinical-release-v1.json.gz
           git commit -m "data: publish latest clinical release"
           git push origin HEAD:main

@@ -247,7 +247,14 @@ final class SyncService implements ClinicalSyncCoordinator {
             ),
           );
 
-          final decoded = jsonDecode(utf8.decode(response.bodyBytes));
+          final bodyBytes = response.bodyBytes;
+          final decodedBytes =
+              bodyBytes.length >= 2 &&
+                  bodyBytes[0] == 0x1f &&
+                  bodyBytes[1] == 0x8b
+              ? gzip.decode(bodyBytes)
+              : bodyBytes;
+          final decoded = jsonDecode(utf8.decode(decodedBytes));
           if (decoded is! Map<String, dynamic>) {
             throw const FormatException(
               'O conteúdo baixado não é um objeto JSON válido.',

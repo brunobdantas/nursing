@@ -55,13 +55,15 @@ jobs:
         shell: bash
         run: |
           curl --fail --show-error --location --retry 5 --retry-delay 2 \
-            https://raw.githubusercontent.com/brunobdantas/nursing/main/clinical-releases/clinical-release-v1.json \
-            -o /tmp/clinical-release-v1.json
+            https://raw.githubusercontent.com/brunobdantas/nursing/main/clinical-releases/clinical-release-v1.json.gz \
+            -o /tmp/clinical-release-v1.json.gz
           python3 - <<'PY'
+          import gzip
           import json
           from pathlib import Path
 
-          data = json.loads(Path("/tmp/clinical-release-v1.json").read_text(encoding="utf-8"))
+          raw = gzip.decompress(Path("/tmp/clinical-release-v1.json.gz").read_bytes())
+          data = json.loads(raw.decode("utf-8"))
           assert data["release_schema"] == "clinical-release-v1"
           assert len(data["active_ingredients"]) > 0
           assert len(data["medications"]) > 0

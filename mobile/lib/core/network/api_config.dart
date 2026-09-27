@@ -15,7 +15,7 @@ final class ApiConfig {
     'CLINICAL_RELEASE_URL',
     defaultValue:
         'https://raw.githubusercontent.com/brunobdantas/nursing/main/'
-        'clinical-releases/clinical-release-v1.json',
+        'clinical-releases/clinical-release-v1.json.gz',
   );
 
   static Uri? get apiBaseUri {
