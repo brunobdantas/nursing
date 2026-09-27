@@ -373,20 +373,19 @@ class _PresentationCard extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (selectable)
-                Radio<String>(
-                  value: presentation.id,
-                  groupValue: selected ? presentation.id : null,
-                  onChanged: (_) => onTap(),
-                )
-              else
-                Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Icon(
-                    Icons.lock_outline_rounded,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Icon(
+                  selectable
+                      ? selected
+                          ? Icons.radio_button_checked_rounded
+                          : Icons.radio_button_unchecked_rounded
+                      : Icons.lock_outline_rounded,
+                  color: selectable && selected
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.onSurfaceVariant,
                 ),
+              ),
               const SizedBox(width: 4),
               Expanded(
                 child: Column(
