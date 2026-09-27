@@ -30,7 +30,12 @@ jobs:
           import { chromium } from 'playwright';
           import fs from 'node:fs';
 
-          const documentId = '35239160';
+          const documentIds = [
+            '35239160',
+            '0633153265',
+            '8483662026',
+            '250000031219551',
+          ];
           const browser = await chromium.launch({
             headless: true,
             args: ['--disable-blink-features=AutomationControlled'],
@@ -47,32 +52,45 @@ jobs:
           });
           await page.waitForTimeout(5000);
 
-          const fetched = await page.evaluate(async (id) => {
-            const response = await fetch(
-              '/api/consulta/downloadPDF/' + encodeURIComponent(id),
-              { credentials: 'include' },
-            );
-            const bytes = new Uint8Array(await response.arrayBuffer());
-            let binary = '';
-            const chunk = 0x8000;
-            for (let offset = 0; offset < bytes.length; offset += chunk) {
-              binary += String.fromCharCode(
-                ...bytes.subarray(offset, Math.min(bytes.length, offset + chunk)),
+          for (const documentId of documentIds) {
+            const fetched = await page.evaluate(async (id) => {
+              const response = await fetch(
+                '/api/consulta/downloadPDF/' + encodeURIComponent(id),
+                { credentials: 'include' },
               );
+              const bytes = new Uint8Array(await response.arrayBuffer());
+              let binary = '';
+              const chunk = 0x8000;
+              for (let offset = 0; offset < bytes.length; offset += chunk) {
+                binary += String.fromCharCode(
+                  ...bytes.subarray(offset, Math.min(bytes.length, offset + chunk)),
+                );
+              }
+              return {
+                status: response.status,
+                contentType: response.headers.get('content-type'),
+                base64: btoa(binary),
+              };
+            }, documentId);
+            const body = Buffer.from(fetched.base64, 'base64');
+            console.log(
+              'DOCUMENT_CANDIDATE',
+              JSON.stringify({
+                id: documentId,
+                status: fetched.status,
+                contentType: fetched.contentType,
+                bytes: body.length,
+                magic: body.subarray(0, 8).toString('latin1'),
+              }),
+            );
+            if (
+              fetched.status === 200 &&
+              body.subarray(0, 4).toString('latin1') === '%PDF'
+            ) {
+              fs.writeFileSync('/tmp/document.pdf', body);
+              console.log('DOCUMENT_WORKING_ID', documentId);
+              break;
             }
-            return {
-              status: response.status,
-              contentType: response.headers.get('content-type'),
-              base64: btoa(binary),
-            };
-          }, documentId);
-          const body = Buffer.from(fetched.base64, 'base64');
-          console.log('DOCUMENT_STATUS', fetched.status);
-          console.log('DOCUMENT_CONTENT_TYPE', fetched.contentType);
-          console.log('DOCUMENT_BYTES', body.length);
-          console.log('DOCUMENT_MAGIC', body.subarray(0, 8).toString('latin1'));
-          if (fetched.status === 200 && body.subarray(0, 4).toString('latin1') === '%PDF') {
-            fs.writeFileSync('/tmp/document.pdf', body);
           }
           await browser.close();
           JS
