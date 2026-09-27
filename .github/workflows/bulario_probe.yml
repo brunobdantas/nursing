@@ -108,3 +108,16 @@ jobs:
                   print("\n###", path.relative_to(root))
                   print(text[:30000])
           PY
+
+
+      - name: Probe product-document key relationships
+        shell: bash
+        run: |
+          echo "Matches for product field 35239160:"
+          grep -m 5 '35239160' /tmp/bula_documento.csv || true
+          echo "Matches for product field 0633153265:"
+          grep -m 5 '0633153265' /tmp/bula_documento.csv || true
+          echo "Matches for product field 8483662026:"
+          grep -m 5 '8483662026' /tmp/bula_documento.csv || true
+          echo "Matches for process 250000031219551:"
+          grep -m 5 '250000031219551' /tmp/bula_documento.csv || true
