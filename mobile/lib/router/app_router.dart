@@ -3,6 +3,8 @@ import 'package:go_router/go_router.dart';
 
 import '../core/network/api_config.dart';
 import '../features/calculator/presentation/calculator_screen.dart';
+import '../features/calculator/presentation/fluid_calculator_screens.dart';
+import '../features/home/data/recent_medication_repository.dart';
 import '../features/home/presentation/home_screen.dart';
 import '../features/medication/data/medication_repository.dart';
 import '../features/medication/presentation/medication_detail_screen.dart';
@@ -11,6 +13,8 @@ import '../features/search/presentation/search_screen.dart';
 final HttpMedicationRepository medicationRepository = HttpMedicationRepository(
   baseUri: ApiConfig.baseUri,
 );
+final SharedPreferencesRecentMedicationRepository recentMedicationRepository =
+    SharedPreferencesRecentMedicationRepository();
 
 final GoRouter appRouter = GoRouter(
   initialLocation: '/',
@@ -18,7 +22,9 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/',
       name: 'home',
-      builder: (context, state) => const HomeScreen(),
+      builder: (context, state) => HomeScreen(
+        recentRepository: recentMedicationRepository,
+      ),
     ),
     GoRoute(
       path: '/search',
@@ -38,6 +44,7 @@ final GoRouter appRouter = GoRouter(
         return MedicationDetailScreen(
           medicationId: medicationId,
           repository: medicationRepository,
+          recentRepository: recentMedicationRepository,
           startCalculationFlow:
               state.uri.queryParameters['calculate'] == 'true',
         );
@@ -62,6 +69,16 @@ final GoRouter appRouter = GoRouter(
           repository: medicationRepository,
         );
       },
+    ),
+    GoRoute(
+      path: '/calculators/infusion',
+      name: 'infusion-calculator',
+      builder: (context, state) => const InfusionCalculatorScreen(),
+    ),
+    GoRoute(
+      path: '/calculators/drip',
+      name: 'drops-calculator',
+      builder: (context, state) => const DropsCalculatorScreen(),
     ),
     GoRoute(
       path: '/calculators/:calculator',
