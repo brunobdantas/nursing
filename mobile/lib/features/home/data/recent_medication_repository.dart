@@ -63,9 +63,8 @@ abstract interface class RecentMedicationRepository {
 final class SharedPreferencesRecentMedicationRepository
     implements RecentMedicationRepository {
   SharedPreferencesRecentMedicationRepository({
-    SharedPreferences? preferences,
     this.maxItems = 8,
-  }) : _preferences = preferences;
+  });
 
   static const String storageKey = 'recent_medications_v1';
 
