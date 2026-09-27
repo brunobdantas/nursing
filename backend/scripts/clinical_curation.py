@@ -10,7 +10,7 @@ from dataclasses import asdict, dataclass
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
@@ -202,6 +202,7 @@ async def _record_parser_provenance(
             confidence=Decimal("1"),
             review_status="automated_validated",
             reviewed_by=PARSER_ID,
+            reviewed_at=func.now(),
             note=note,
         )
         .on_conflict_do_update(
@@ -217,6 +218,7 @@ async def _record_parser_provenance(
                 "confidence": Decimal("1"),
                 "review_status": "automated_validated",
                 "reviewed_by": PARSER_ID,
+                "reviewed_at": func.now(),
                 "note": note,
             },
         )
