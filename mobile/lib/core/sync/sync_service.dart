@@ -4,7 +4,7 @@ import 'dart:io';
 
 import 'package:http/http.dart' as http;
 
-import '../storage/clinical_database.dart';
+import '../storage/clinicaldatabase.dart';
 import 'sync_models.dart';
 
 enum ClinicalSyncState {
@@ -58,26 +58,24 @@ abstract interface class ClinicalSyncCoordinator {
 
 final class SyncService implements ClinicalSyncCoordinator {
   SyncService({
-    required Uri baseUri,
-    required ClinicalDatabase database,
+    required this.baseUri,
+    required this.database,
     http.Client? client,
-    Duration timeout = const Duration(seconds: 30),
-  }) : _baseUri = baseUri,
-       _database = database,
-       _client = client ?? http.Client(),
-       _ownsClient = client == null,
-       _timeout = timeout;
+    this.timeout = const Duration(seconds: 30),
+  }) : _client = client ?? http.Client(),
+       _ownsClient = client == null;
 
-  final Uri _baseUri;
-  final ClinicalDatabase _database;
+  final Uri baseUri;
+  final ClinicalDatabase database;
   final http.Client _client;
   final bool _ownsClient;
-  final Duration _timeout;
+  final Duration timeout;
 
+  @override
   Future<ClinicalSyncStatus> localStatus() async {
-    final hasLocalContent = await _database.hasClinicalContent();
-    final contentVersion = await _database.getContentVersion();
-    final lastSyncAt = await _database.getLastSyncAt();
+    final hasLocalContent = await database.hasClinicalContent();
+    final contentVersion = await database.getContentVersion();
+    final lastSyncAt = await database.getLastSyncAt();
 
     return ClinicalSyncStatus(
       state: hasLocalContent
@@ -89,10 +87,11 @@ final class SyncService implements ClinicalSyncCoordinator {
     );
   }
 
+  @override
   Future<ClinicalSyncStatus> syncIfNeeded() async {
-    final currentVersion = await _database.getContentVersion();
-    final hadLocalContent = await _database.hasClinicalContent();
-    final lastSyncAt = await _database.getLastSyncAt();
+    final currentVersion = await database.getContentVersion();
+    final hadLocalContent = await database.hasClinicalContent();
+    final lastSyncAt = await database.getLastSyncAt();
 
     final uri = _resolve('/v1/sync/content');
     final headers = <String, String>{
@@ -104,7 +103,7 @@ final class SyncService implements ClinicalSyncCoordinator {
     }
 
     try {
-      final response = await _client.get(uri, headers: headers).timeout(_timeout);
+      final response = await _client.get(uri, headers: headers).timeout(timeout);
 
       if (response.statusCode == HttpStatus.notModified) {
         return ClinicalSyncStatus(
@@ -153,12 +152,12 @@ final class SyncService implements ClinicalSyncCoordinator {
         );
       }
 
-      await _database.replaceClinicalRelease(release);
+      await database.replaceClinicalRelease(release);
       return ClinicalSyncStatus(
         state: ClinicalSyncState.updated,
         hasLocalContent: true,
         contentVersion: release.contentVersion,
-        lastSyncAt: await _database.getLastSyncAt(),
+        lastSyncAt: await database.getLastSyncAt(),
       );
     } on TimeoutException {
       return _fallbackStatus(
@@ -222,9 +221,9 @@ final class SyncService implements ClinicalSyncCoordinator {
   }
 
   Uri _resolve(String path) {
-    final basePath = _baseUri.path.endsWith('/')
-        ? _baseUri.path.substring(0, _baseUri.path.length - 1)
-        : _baseUri.path;
-    return _baseUri.replace(path: '$basePath$path');
+    final basePath = baseUri.path.endsWith('/')
+        ? baseUri.path.substring(0, baseUri.path.length - 1)
+        : baseUri.path;
+    return baseUri.replace(path: '$basePath$path');
   }
 }
