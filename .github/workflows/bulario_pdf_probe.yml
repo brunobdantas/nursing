@@ -789,3 +789,110 @@ jobs:
           JS
           cd /tmp
           node /tmp/capture-bulario-headers.mjs
+
+
+      - name: Validate professional leaflet binary payload
+        shell: bash
+        run: |
+          cat > /tmp/validate-professional-binary.mjs <<'JS'
+          import { chromium } from 'playwright';
+          import fs from 'node:fs';
+
+          const browser = await chromium.launch({
+            headless: true,
+            args: ['--disable-blink-features=AutomationControlled'],
+          });
+          const context = await browser.newContext({
+            userAgent:
+              'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 ' +
+              '(KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
+          });
+          const page = await context.newPage();
+          await page.goto('https://consultas.anvisa.gov.br/#/bulario/', {
+            waitUntil: 'networkidle',
+            timeout: 120000,
+          });
+          await page.waitForTimeout(2500);
+          await page.locator('#txtNumeroRegistro').fill('103460005');
+
+          const responsePromise = page.waitForResponse(
+            (response) =>
+              response.url().includes('/api/consulta/bulario?') &&
+              response.status() === 200,
+            { timeout: 30000 },
+          );
+          await page.locator('input[type="submit"]').first().click();
+          const searchResponse = await responsePromise;
+          const result = await searchResponse.json();
+          const item = result.content?.[0];
+          const token = item?.idBulaProfissionalProtegido;
+          console.log('BINARY_HAS_TOKEN', Boolean(token));
+          if (!token) {
+            await browser.close();
+            process.exit(0);
+          }
+
+          const binaryResult = await page.evaluate(async (protectedId) => {
+            const response = await fetch(
+              '/api/consulta/medicamentos/arquivo/bula/parecer/' +
+                encodeURIComponent(protectedId) +
+                '/',
+              {
+                headers: { Accept: 'application/pdf,*/*' },
+                credentials: 'include',
+              },
+            );
+            const bytes = new Uint8Array(await response.arrayBuffer());
+            let binary = '';
+            const chunkSize = 0x8000;
+            for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+              binary += String.fromCharCode(
+                ...bytes.subarray(offset, Math.min(bytes.length, offset + chunkSize)),
+              );
+            }
+            return {
+              status: response.status,
+              contentType: response.headers.get('content-type'),
+              base64: btoa(binary),
+            };
+          }, token);
+
+          const body = Buffer.from(binaryResult.base64, 'base64');
+          console.log('BINARY_STATUS', binaryResult.status);
+          console.log('BINARY_CONTENT_TYPE', binaryResult.contentType);
+          console.log('BINARY_BYTES', body.length);
+          console.log('BINARY_MAGIC', body.subarray(0, 8).toString('latin1'));
+          if (
+            binaryResult.status === 200 &&
+            body.subarray(0, 4).toString('latin1') === '%PDF'
+          ) {
+            fs.writeFileSync('/tmp/professional_binary.pdf', body);
+          }
+          await browser.close();
+          JS
+          cd /tmp
+          node /tmp/validate-professional-binary.mjs
+          if [ -f /tmp/professional_binary.pdf ]; then
+            python3 -m pip install --quiet 'pypdf>=5,<7'
+            python3 - <<'PY'
+          from pypdf import PdfReader
+          reader=PdfReader("/tmp/professional_binary.pdf")
+          text="\n".join((page.extract_text() or "") for page in reader.pages)
+          upper=text.upper()
+          print("BINARY_PDF_PAGES", len(reader.pages))
+          print("BINARY_PDF_TEXT_CHARS", len(text))
+          print("BINARY_PDF_HEADINGS", [
+              heading for heading in (
+                  "INDICAÇÕES",
+                  "CONTRAINDICAÇÕES",
+                  "ADVERTÊNCIAS E PRECAUÇÕES",
+                  "INTERAÇÕES MEDICAMENTOSAS",
+                  "CUIDADOS DE ARMAZENAMENTO",
+                  "POSOLOGIA E MODO DE USAR",
+                  "REAÇÕES ADVERSAS",
+                  "SUPERDOSE",
+              ) if heading in upper
+          ])
+          print("BINARY_PDF_PREFIX", repr(text[:1800]))
+          PY
+          fi
