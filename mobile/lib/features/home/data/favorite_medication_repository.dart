@@ -1,4 +1,4 @@
-import '../../../core/storage/clinicaldatabase.dart';
+import '../../../core/storage/clinical_database.dart';
 
 final class FavoriteMedication {
   const FavoriteMedication({
