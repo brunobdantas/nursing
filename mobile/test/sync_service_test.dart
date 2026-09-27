@@ -73,6 +73,7 @@ void main() {
           jsonEncode(_releaseJson()),
           200,
           headers: <String, String>{
+            'content-type': 'application/json; charset=utf-8',
             'etag': '"clinical-release-v1-testhash"',
             'x-clinical-release': 'clinical-release-v1-testhash',
           },
@@ -108,6 +109,9 @@ void main() {
             'presentations': <Object?>[],
           }),
           200,
+          headers: <String, String>{
+            'content-type': 'application/json; charset=utf-8',
+          },
         );
       });
 
