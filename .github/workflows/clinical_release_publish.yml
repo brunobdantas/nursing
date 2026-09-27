@@ -64,6 +64,23 @@ jobs:
       - name: Migrate clinical database
         run: alembic -c alembic.ini upgrade head
 
+      - name: Validate current CMED source format
+        shell: bash
+        run: |
+          python - <<'PY'
+          import asyncio
+          from scripts.cmed_enrichment import _download_cmed, load_cmed_dataframe
+
+          url, content, _ = asyncio.run(_download_cmed())
+          frame = load_cmed_dataframe(content)
+          assert "REGISTRO" in frame.columns
+          assert "APRESENTACAO" in frame.columns
+          assert len(frame) > 0
+          print("CMED source:", url)
+          print("CMED rows:", len(frame))
+          print("CMED columns:", list(frame.columns[:20]))
+          PY
+
       - name: Ingest latest ANVISA open data
         run: python scripts/etl_anvisa.py
 
