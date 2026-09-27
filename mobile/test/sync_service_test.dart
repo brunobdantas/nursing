@@ -115,40 +115,41 @@ void main() {
     },
   );
 
-  test('gzipped public release is decoded before clinical validation', () async {
-    final database = _database();
-    addTearDown(database.close);
+  test(
+    'gzipped public release is decoded before clinical validation',
+    () async {
+      final database = _database();
+      addTearDown(database.close);
 
-    final compressed = gzip.encode(utf8.encode(jsonEncode(_releaseJson())));
-    final client = MockClient((request) async {
-      return http.Response.bytes(
-        compressed,
-        200,
-        headers: <String, String>{
-          'content-type': 'application/gzip',
-        },
-      );
-    });
+      final compressed = gzip.encode(utf8.encode(jsonEncode(_releaseJson())));
+      final client = MockClient((request) async {
+        return http.Response.bytes(
+          compressed,
+          200,
+          headers: <String, String>{'content-type': 'application/gzip'},
+        );
+      });
 
-    final service = SyncService(
-      endpoints: <SyncEndpoint>[
-        SyncEndpoint.staticRelease(
-          label: 'Base clínica pública',
-          uri: Uri.parse(
-            'https://raw.githubusercontent.com/example/release.json.gz',
+      final service = SyncService(
+        endpoints: <SyncEndpoint>[
+          SyncEndpoint.staticRelease(
+            label: 'Base clínica pública',
+            uri: Uri.parse(
+              'https://raw.githubusercontent.com/example/release.json.gz',
+            ),
           ),
-        ),
-      ],
-      database: database,
-      client: client,
-      retryBaseDelay: Duration.zero,
-    );
+        ],
+        database: database,
+        client: client,
+        retryBaseDelay: Duration.zero,
+      );
 
-    final result = await service.syncIfNeeded();
+      final result = await service.syncIfNeeded();
 
-    expect(result.state, ClinicalSyncState.updated);
-    expect(await database.hasClinicalContent(), isTrue);
-  });
+      expect(result.state, ClinicalSyncState.updated);
+      expect(await database.hasClinicalContent(), isTrue);
+    },
+  );
 
   test('generic CDN ETag does not invalidate a valid static release', () async {
     final database = _database();
