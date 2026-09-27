@@ -49,14 +49,15 @@ void main() {
     final dropsSize = tester.getSize(find.byKey(HomeScreen.dropsActionKey));
     expect(dropsSize.height, greaterThanOrEqualTo(48));
 
-    await tester.drag(find.byType(ListView), const Offset(0, -700));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Recentes'), findsOneWidget);
     expect(
       find.text('Base clínica atualizada e disponível offline'),
       findsOneWidget,
     );
+
+    await tester.drag(find.byType(ListView), const Offset(0, -700));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Recentes'), findsOneWidget);
   });
 
   testWidgets('home renders persisted favorite and recent medication', (
@@ -138,8 +139,6 @@ void main() {
         ),
       ),
     );
-    await tester.pumpAndSettle();
-    await tester.drag(find.byType(ListView), const Offset(0, -850));
     await tester.pumpAndSettle();
 
     expect(
