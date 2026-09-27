@@ -16,7 +16,7 @@ permissions:
 
 concurrency:
   group: clinical-release-publisher
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   publish-clinical-release:
