@@ -50,7 +50,13 @@ final class ClinicalSyncStatus {
   }
 }
 
-final class SyncService {
+abstract interface class ClinicalSyncCoordinator {
+  Future<ClinicalSyncStatus> localStatus();
+
+  Future<ClinicalSyncStatus> syncIfNeeded();
+}
+
+final class SyncService implements ClinicalSyncCoordinator {
   SyncService({
     required Uri baseUri,
     required ClinicalDatabase database,
