@@ -1,4 +1,4 @@
-fastapi>=0.128,<1
+fastapi>=0.141.1,<1
 pydantic>=2.13,<3
 SQLAlchemy[asyncio]>=2.0,<3
 asyncpg>=0.30,<1
