@@ -18,7 +18,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: clinical-core-${{ github.event.pull_request.number || github.ref }}
+  group: clinical-core-${{ github.sha }}
   cancel-in-progress: true
 
 jobs:
