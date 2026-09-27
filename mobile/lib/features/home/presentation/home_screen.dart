@@ -14,10 +14,7 @@ class HomeScreen extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Nursing'),
-        centerTitle: false,
-      ),
+      appBar: AppBar(title: const Text('Nursing'), centerTitle: false),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -70,10 +67,7 @@ class HomeScreen extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 28),
-                _SectionTitle(
-                  title: 'Calculadoras',
-                  subtitle: 'Ações rápidas',
-                ),
+                _SectionTitle(title: 'Calculadoras', subtitle: 'Ações rápidas'),
                 const SizedBox(height: 12),
                 LayoutBuilder(
                   builder: (context, constraints) {
@@ -92,8 +86,7 @@ class HomeScreen extends StatelessWidget {
                             key: doseActionKey,
                             icon: Icons.medication_outlined,
                             label: 'Calcular dose',
-                            onPressed: () =>
-                                context.push('/calculators/dose'),
+                            onPressed: () => context.push('/calculators/dose'),
                           ),
                         ),
                         SizedBox(
@@ -110,8 +103,7 @@ class HomeScreen extends StatelessWidget {
                           child: _QuickAction(
                             icon: Icons.opacity_outlined,
                             label: 'Gotejamento',
-                            onPressed: () =>
-                                context.push('/calculators/drip'),
+                            onPressed: () => context.push('/calculators/drip'),
                           ),
                         ),
                         SizedBox(
@@ -119,8 +111,7 @@ class HomeScreen extends StatelessWidget {
                           child: _QuickAction(
                             icon: Icons.monitor_weight_outlined,
                             label: 'mg/kg',
-                            onPressed: () =>
-                                context.push('/calculators/mg-kg'),
+                            onPressed: () => context.push('/calculators/mg-kg'),
                           ),
                         ),
                       ],
@@ -163,10 +154,7 @@ class HomeScreen extends StatelessWidget {
 }
 
 class _SectionTitle extends StatelessWidget {
-  const _SectionTitle({
-    required this.title,
-    required this.subtitle,
-  });
+  const _SectionTitle({required this.title, required this.subtitle});
 
   final String title;
   final String subtitle;
@@ -203,10 +191,7 @@ class _QuickAction extends StatelessWidget {
     return FilledButton.tonalIcon(
       onPressed: onPressed,
       icon: Icon(icon, size: 24),
-      label: Align(
-        alignment: Alignment.centerLeft,
-        child: Text(label),
-      ),
+      label: Align(alignment: Alignment.centerLeft, child: Text(label)),
       style: FilledButton.styleFrom(
         alignment: Alignment.centerLeft,
         minimumSize: const Size(

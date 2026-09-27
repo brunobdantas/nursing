@@ -8,17 +8,11 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(
-      MaterialApp(
-        theme: ClinicalTheme.light(),
-        home: const HomeScreen(),
-      ),
+      MaterialApp(theme: ClinicalTheme.light(), home: const HomeScreen()),
     );
 
     expect(find.text('O que você precisa fazer agora?'), findsOneWidget);
-    expect(
-      find.text('Buscar medicamento ou princípio ativo'),
-      findsOneWidget,
-    );
+    expect(find.text('Buscar medicamento ou princípio ativo'), findsOneWidget);
     expect(find.text('Calculadoras'), findsOneWidget);
     expect(find.text('Recentes'), findsOneWidget);
 
@@ -30,10 +24,8 @@ void main() {
   });
 
   test('clinical semantic colors exist in light and dark modes', () {
-    final light = ClinicalTheme.light()
-        .extension<ClinicalSemanticColors>();
-    final dark = ClinicalTheme.dark()
-        .extension<ClinicalSemanticColors>();
+    final light = ClinicalTheme.light().extension<ClinicalSemanticColors>();
+    final dark = ClinicalTheme.dark().extension<ClinicalSemanticColors>();
 
     expect(light, isNotNull);
     expect(dark, isNotNull);

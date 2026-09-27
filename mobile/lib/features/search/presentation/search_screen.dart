@@ -21,9 +21,7 @@ class _SearchScreenState extends State<SearchScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Buscar medicamento'),
-      ),
+      appBar: AppBar(title: const Text('Buscar medicamento')),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(
@@ -92,10 +90,7 @@ class _SearchEmptyState extends StatelessWidget {
 }
 
 class _SearchPendingState extends StatelessWidget {
-  const _SearchPendingState({
-    required this.theme,
-    required this.query,
-  });
+  const _SearchPendingState({required this.theme, required this.query});
 
   final ThemeData theme;
   final String query;
@@ -112,10 +107,7 @@ class _SearchPendingState extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            Icons.info_outline_rounded,
-            color: theme.colorScheme.primary,
-          ),
+          Icon(Icons.info_outline_rounded, color: theme.colorScheme.primary),
           const SizedBox(width: 12),
           Expanded(
             child: Text(

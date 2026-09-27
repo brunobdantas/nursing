@@ -107,25 +107,25 @@ void main() {
       expect(result.error?.code, CalculationErrorCode.calculationNotReady);
     });
 
-    test('resultado recorrente falha até existir política de arredondamento', () {
-      final result = CalculationCore.mgToMl(
-        MgToMlInput(
-          prescribedDose: Decimal.one,
-          doseUnit: 'mg',
-          concentrationMass: Decimal.parse('3'),
-          concentrationMassUnit: 'mg',
-          concentrationVolume: Decimal.one,
-          concentrationVolumeUnit: 'mL',
-          calculationReady: true,
-        ),
-      );
+    test(
+      'resultado recorrente falha até existir política de arredondamento',
+      () {
+        final result = CalculationCore.mgToMl(
+          MgToMlInput(
+            prescribedDose: Decimal.one,
+            doseUnit: 'mg',
+            concentrationMass: Decimal.parse('3'),
+            concentrationMassUnit: 'mg',
+            concentrationVolume: Decimal.one,
+            concentrationVolumeUnit: 'mL',
+            calculationReady: true,
+          ),
+        );
 
-      expect(result.status, CalculationStatus.failure);
-      expect(result.resultValue, isNull);
-      expect(
-        result.error?.code,
-        CalculationErrorCode.roundingPolicyRequired,
-      );
-    });
+        expect(result.status, CalculationStatus.failure);
+        expect(result.resultValue, isNull);
+        expect(result.error?.code, CalculationErrorCode.roundingPolicyRequired);
+      },
+    );
   });
 }

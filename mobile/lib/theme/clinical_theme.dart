@@ -73,8 +73,7 @@ final class ClinicalSemanticColors
       onSafeContainer: onSafeContainer ?? this.onSafeContainer,
       information: information ?? this.information,
       onInformation: onInformation ?? this.onInformation,
-      informationContainer:
-          informationContainer ?? this.informationContainer,
+      informationContainer: informationContainer ?? this.informationContainer,
       onInformationContainer:
           onInformationContainer ?? this.onInformationContainer,
     );
@@ -91,28 +90,44 @@ final class ClinicalSemanticColors
     return ClinicalSemanticColors(
       critical: Color.lerp(critical, other.critical, t)!,
       onCritical: Color.lerp(onCritical, other.onCritical, t)!,
-      criticalContainer:
-          Color.lerp(criticalContainer, other.criticalContainer, t)!,
-      onCriticalContainer:
-          Color.lerp(onCriticalContainer, other.onCriticalContainer, t)!,
+      criticalContainer: Color.lerp(
+        criticalContainer,
+        other.criticalContainer,
+        t,
+      )!,
+      onCriticalContainer: Color.lerp(
+        onCriticalContainer,
+        other.onCriticalContainer,
+        t,
+      )!,
       warning: Color.lerp(warning, other.warning, t)!,
       onWarning: Color.lerp(onWarning, other.onWarning, t)!,
-      warningContainer:
-          Color.lerp(warningContainer, other.warningContainer, t)!,
-      onWarningContainer:
-          Color.lerp(onWarningContainer, other.onWarningContainer, t)!,
+      warningContainer: Color.lerp(
+        warningContainer,
+        other.warningContainer,
+        t,
+      )!,
+      onWarningContainer: Color.lerp(
+        onWarningContainer,
+        other.onWarningContainer,
+        t,
+      )!,
       safe: Color.lerp(safe, other.safe, t)!,
       onSafe: Color.lerp(onSafe, other.onSafe, t)!,
       safeContainer: Color.lerp(safeContainer, other.safeContainer, t)!,
-      onSafeContainer:
-          Color.lerp(onSafeContainer, other.onSafeContainer, t)!,
+      onSafeContainer: Color.lerp(onSafeContainer, other.onSafeContainer, t)!,
       information: Color.lerp(information, other.information, t)!,
-      onInformation:
-          Color.lerp(onInformation, other.onInformation, t)!,
-      informationContainer:
-          Color.lerp(informationContainer, other.informationContainer, t)!,
-      onInformationContainer:
-          Color.lerp(onInformationContainer, other.onInformationContainer, t)!,
+      onInformation: Color.lerp(onInformation, other.onInformation, t)!,
+      informationContainer: Color.lerp(
+        informationContainer,
+        other.informationContainer,
+        t,
+      )!,
+      onInformationContainer: Color.lerp(
+        onInformationContainer,
+        other.onInformationContainer,
+        t,
+      )!,
     );
   }
 }
@@ -238,16 +253,11 @@ abstract final class ClinicalTheme {
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(
-            color: scheme.outlineVariant,
-          ),
+          borderSide: BorderSide(color: scheme.outlineVariant),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(
-            color: scheme.primary,
-            width: 2,
-          ),
+          borderSide: BorderSide(color: scheme.primary, width: 2),
         ),
       ),
       filledButtonTheme: FilledButtonThemeData(
@@ -259,9 +269,7 @@ abstract final class ClinicalTheme {
             EdgeInsets.symmetric(horizontal: 18, vertical: 14),
           ),
           shape: WidgetStatePropertyAll(
-            RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           ),
         ),
       ),
@@ -274,9 +282,7 @@ abstract final class ClinicalTheme {
             EdgeInsets.symmetric(horizontal: 18, vertical: 14),
           ),
           shape: WidgetStatePropertyAll(
-            RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14),
-            ),
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
           ),
         ),
       ),

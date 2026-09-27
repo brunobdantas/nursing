@@ -111,8 +111,7 @@ abstract final class CalculationCore {
     if (!input.calculationReady) {
       return CalculationResult.failure(
         code: CalculationErrorCode.calculationNotReady,
-        message:
-            'Esta apresentação ainda não está validada para cálculo automático.',
+        message: 'Esta apresentação ainda não está validada para cálculo automático.',
       );
     }
 
@@ -129,7 +128,8 @@ abstract final class CalculationCore {
     const canonicalMassUnit = 'mg';
     const canonicalVolumeUnit = 'mL';
 
-    final unitsAreCompatible = input.doseUnit == canonicalDoseUnit &&
+    final unitsAreCompatible =
+        input.doseUnit == canonicalDoseUnit &&
         input.concentrationMassUnit == canonicalMassUnit &&
         input.concentrationVolumeUnit == canonicalVolumeUnit;
 
@@ -168,12 +168,11 @@ abstract final class CalculationCore {
     }
 
     final result = exactResult.toDecimal();
-    final concentration =
-        input.concentrationMass / input.concentrationVolume;
+    final concentration = input.concentrationMass / input.concentrationVolume;
     final concentrationText = concentration.hasFinitePrecision
         ? '${concentration.toDecimal()} mg/mL'
         : '${input.concentrationMass} mg / '
-            '${input.concentrationVolume} mL';
+              '${input.concentrationVolume} mL';
 
     return CalculationResult.success(
       resultValue: result,
