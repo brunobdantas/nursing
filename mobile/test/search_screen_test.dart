@@ -63,31 +63,32 @@ void main() {
     expect(find.text('Calcular'), findsOneWidget);
   });
 
-  testWidgets('calculate action is hidden without calculation-ready presentation', (
-    tester,
-  ) async {
-    final repository = FakeMedicationRepository(
-      searchResponse: sampleSearchResponse(
-        approximate: false,
-        calculationReady: false,
-      ),
-    );
+  testWidgets(
+    'calculate action is hidden without calculation-ready presentation',
+    (tester) async {
+      final repository = FakeMedicationRepository(
+        searchResponse: sampleSearchResponse(
+          approximate: false,
+          calculationReady: false,
+        ),
+      );
 
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: ClinicalTheme.light(),
-        home: SearchScreen(repository: repository),
-      ),
-    );
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ClinicalTheme.light(),
+          home: SearchScreen(repository: repository),
+        ),
+      );
 
-    await tester.enterText(
-      find.byKey(const ValueKey<String>('medication-search-field')),
-      'dopa',
-    );
-    await tester.pump(const Duration(milliseconds: 500));
-    await tester.pump();
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('medication-search-field')),
+        'dopa',
+      );
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pump();
 
-    expect(find.text('Ver ficha'), findsOneWidget);
-    expect(find.text('Calcular'), findsNothing);
-  });
+      expect(find.text('Ver ficha'), findsOneWidget);
+      expect(find.text('Calcular'), findsNothing);
+    },
+  );
 }

@@ -8,8 +8,9 @@ import '../features/medication/data/medication_repository.dart';
 import '../features/medication/presentation/medication_detail_screen.dart';
 import '../features/search/presentation/search_screen.dart';
 
-final HttpMedicationRepository medicationRepository =
-    HttpMedicationRepository(baseUri: ApiConfig.baseUri);
+final HttpMedicationRepository medicationRepository = HttpMedicationRepository(
+  baseUri: ApiConfig.baseUri,
+);
 
 final GoRouter appRouter = GoRouter(
   initialLocation: '/',
@@ -22,9 +23,8 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/search',
       name: 'search',
-      builder: (context, state) => SearchScreen(
-        repository: medicationRepository,
-      ),
+      builder: (context, state) =>
+          SearchScreen(repository: medicationRepository),
     ),
     GoRoute(
       path: '/medications/:medicationId',
@@ -44,8 +44,7 @@ final GoRouter appRouter = GoRouter(
       },
     ),
     GoRoute(
-      path:
-          '/medications/:medicationId/calculator/:presentationId',
+      path: '/medications/:medicationId/calculator/:presentationId',
       name: 'medication-calculator',
       builder: (context, state) {
         final medicationId = state.pathParameters['medicationId'];

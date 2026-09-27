@@ -55,9 +55,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
       final medication = await widget.repository.getMedicationDetail(
         widget.medicationId,
       );
-      final presentation = medication.presentationById(
-        widget.presentationId,
-      );
+      final presentation = medication.presentationById(widget.presentationId);
 
       if (!presentation.calculationReady ||
           presentation.concentration == null) {
@@ -98,8 +96,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
         return;
       }
       setState(() {
-        _loadError =
-            'Não foi possível preparar a calculadora com segurança.';
+        _loadError = 'Não foi possível preparar a calculadora com segurança.';
         _loading = false;
       });
     }
@@ -165,10 +162,7 @@ class _CalculatorScreenState extends State<CalculatorScreen> {
         child: _loading
             ? const Center(child: CircularProgressIndicator())
             : _loadError != null
-            ? _CalculatorLoadError(
-                message: _loadError!,
-                onRetry: _load,
-              )
+            ? _CalculatorLoadError(message: _loadError!, onRetry: _load)
             : medication == null || presentation == null
             ? const SizedBox.shrink()
             : _CalculatorBody(
@@ -219,10 +213,7 @@ class _CalculatorBody extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
           children: [
-            Text(
-              medication.displayName,
-              style: theme.textTheme.headlineSmall,
-            ),
+            Text(medication.displayName, style: theme.textTheme.headlineSmall),
             const SizedBox(height: 6),
             Text(
               presentation.description,
@@ -236,10 +227,7 @@ class _CalculatorBody extends StatelessWidget {
               concentration: concentration,
             ),
             const SizedBox(height: 24),
-            Text(
-              'Dose prescrita',
-              style: theme.textTheme.titleLarge,
-            ),
+            Text('Dose prescrita', style: theme.textTheme.titleLarge),
             const SizedBox(height: 8),
             Text(
               'Digite exatamente o valor prescrito. Esta calculadora V1 aceita '
@@ -369,10 +357,7 @@ class _CalculationResultCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: semantic.safeContainer,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: semantic.safe,
-            width: 2,
-          ),
+          border: Border.all(color: semantic.safe, width: 2),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -424,10 +409,7 @@ class _CalculationMemoryCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Memória de Cálculo',
-            style: theme.textTheme.titleLarge,
-          ),
+          Text('Memória de Cálculo', style: theme.textTheme.titleLarge),
           const SizedBox(height: 12),
           for (final line in result.calculationMemory) ...[
             SelectableText(
@@ -444,10 +426,7 @@ class _CalculationMemoryCard extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(
-                  Icons.check_circle_outline_rounded,
-                  size: 20,
-                ),
+                const Icon(Icons.check_circle_outline_rounded, size: 20),
                 const SizedBox(width: 8),
                 Expanded(child: Text(alert)),
               ],
@@ -480,10 +459,7 @@ class _CalculationFailure extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            Icons.block_rounded,
-            color: semantic.onCriticalContainer,
-          ),
+          Icon(Icons.block_rounded, color: semantic.onCriticalContainer),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
@@ -501,10 +477,7 @@ class _CalculationFailure extends StatelessWidget {
 }
 
 class _CalculatorLoadError extends StatelessWidget {
-  const _CalculatorLoadError({
-    required this.message,
-    required this.onRetry,
-  });
+  const _CalculatorLoadError({required this.message, required this.onRetry});
 
   final String message;
   final VoidCallback onRetry;

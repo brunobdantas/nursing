@@ -94,11 +94,7 @@ final class MedicationSearchResponse {
     }
 
     final items = rawItems
-        .map(
-          (item) => MedicationSearchResult.fromJson(
-            _map(item, 'items[]'),
-          ),
-        )
+        .map((item) => MedicationSearchResult.fromJson(_map(item, 'items[]')))
         .toList(growable: false);
     final returned = _int(json['returned'], 'returned');
     if (returned < 0 || returned != items.length) {
@@ -186,16 +182,12 @@ final class ConcentrationData {
   });
 
   factory ConcentrationData.fromJson(Map<String, dynamic> json) {
-    final numeratorValue = _decimal(
-      json['numerator_value'],
-      'numerator_value',
-    );
+    final numeratorValue = _decimal(json['numerator_value'], 'numerator_value');
     final denominatorValue = _decimal(
       json['denominator_value'],
       'denominator_value',
     );
-    if (numeratorValue <= Decimal.zero ||
-        denominatorValue <= Decimal.zero) {
+    if (numeratorValue <= Decimal.zero || denominatorValue <= Decimal.zero) {
       throw const FormatException('Concentration values must be positive.');
     }
 
@@ -203,10 +195,7 @@ final class ConcentrationData {
       numeratorValue: numeratorValue,
       numeratorUnit: _string(json['numerator_unit'], 'numerator_unit'),
       denominatorValue: denominatorValue,
-      denominatorUnit: _string(
-        json['denominator_unit'],
-        'denominator_unit',
-      ),
+      denominatorUnit: _string(json['denominator_unit'], 'denominator_unit'),
     );
   }
 
@@ -243,9 +232,7 @@ final class PresentationDetail {
     final rawConcentration = json['concentration'];
     final concentration = rawConcentration == null
         ? null
-        : ConcentrationData.fromJson(
-            _map(rawConcentration, 'concentration'),
-          );
+        : ConcentrationData.fromJson(_map(rawConcentration, 'concentration'));
     final calculationReady = _bool(
       json['calculation_ready'],
       'calculation_ready',
@@ -338,9 +325,8 @@ final class MedicationDetailResponse {
           .toList(growable: false),
       presentations: rawPresentations
           .map(
-            (item) => PresentationDetail.fromJson(
-              _map(item, 'presentations[]'),
-            ),
+            (item) =>
+                PresentationDetail.fromJson(_map(item, 'presentations[]')),
           )
           .toList(growable: false),
     );
@@ -357,14 +343,12 @@ final class MedicationDetailResponse {
 
   String get displayName => brandName ?? genericName;
 
-  List<PresentationDetail> get calculationReadyPresentations =>
-      presentations
-          .where(
-            (presentation) =>
-                presentation.calculationReady &&
-                presentation.concentration != null,
-          )
-          .toList(growable: false);
+  List<PresentationDetail> get calculationReadyPresentations => presentations
+      .where(
+        (presentation) =>
+            presentation.calculationReady && presentation.concentration != null,
+      )
+      .toList(growable: false);
 
   PresentationDetail presentationById(String presentationId) {
     for (final presentation in presentations) {
@@ -381,9 +365,7 @@ Map<String, dynamic> _map(Object? value, String field) {
     return value;
   }
   if (value is Map) {
-    return value.map(
-      (key, item) => MapEntry(key.toString(), item),
-    );
+    return value.map((key, item) => MapEntry(key.toString(), item));
   }
   throw FormatException('$field must be an object.');
 }

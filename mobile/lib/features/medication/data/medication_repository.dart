@@ -96,10 +96,7 @@ final class HttpMedicationRepository implements MedicationRepository {
     }
   }
 
-  Uri _resolve(
-    String path, {
-    Map<String, String>? queryParameters,
-  }) {
+  Uri _resolve(String path, {Map<String, String>? queryParameters}) {
     final basePath = baseUri.path.endsWith('/')
         ? baseUri.path.substring(0, baseUri.path.length - 1)
         : baseUri.path;
@@ -186,10 +183,7 @@ final class HttpMedicationRepository implements MedicationRepository {
     }
   }
 
-  T _parse<T>(
-    T Function() parser, {
-    required String operation,
-  }) {
+  T _parse<T>(T Function() parser, {required String operation}) {
     try {
       return parser();
     } on FormatException {
@@ -202,8 +196,7 @@ final class HttpMedicationRepository implements MedicationRepository {
     } catch (_) {
       throw MedicationRepositoryException(
         kind: MedicationRepositoryErrorKind.invalidPayload,
-        message:
-            'Os dados recebidos na $operation não puderam ser validados.',
+        message: 'Os dados recebidos na $operation não puderam ser validados.',
       );
     }
   }

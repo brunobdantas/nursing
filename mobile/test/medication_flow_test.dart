@@ -7,38 +7,39 @@ import 'package:nursing_clinical_core/theme/clinical_theme.dart';
 import 'support/fake_medication_repository.dart';
 
 void main() {
-  testWidgets('medication detail renders identity, alerts and selected presentation', (
-    tester,
-  ) async {
-    final repository = FakeMedicationRepository();
+  testWidgets(
+    'medication detail renders identity, alerts and selected presentation',
+    (tester) async {
+      final repository = FakeMedicationRepository();
 
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: ClinicalTheme.light(),
-        home: MedicationDetailScreen(
-          medicationId: repository.detailResponse.id,
-          repository: repository,
-          startCalculationFlow: true,
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ClinicalTheme.light(),
+          home: MedicationDetailScreen(
+            medicationId: repository.detailResponse.id,
+            repository: repository,
+            startCalculationFlow: true,
+          ),
         ),
-      ),
-    );
-    await tester.pumpAndSettle();
+      );
+      await tester.pumpAndSettle();
 
-    expect(find.text('Medicamento Teste'), findsOneWidget);
-    expect(find.text('dipirona'), findsOneWidget);
-    expect(find.text('Alertas'), findsOneWidget);
+      expect(find.text('Medicamento Teste'), findsOneWidget);
+      expect(find.text('dipirona'), findsOneWidget);
+      expect(find.text('Alertas'), findsOneWidget);
 
-    await tester.drag(find.byType(ListView), const Offset(0, -420));
-    await tester.pumpAndSettle();
+      await tester.drag(find.byType(ListView), const Offset(0, -420));
+      await tester.pumpAndSettle();
 
-    expect(find.text('Ampola 500 mg/mL'), findsOneWidget);
-    expect(find.text('Validada para cálculo'), findsOneWidget);
+      expect(find.text('Ampola 500 mg/mL'), findsOneWidget);
+      expect(find.text('Validada para cálculo'), findsOneWidget);
 
-    final button = tester.widget<FilledButton>(
-      find.byKey(const ValueKey<String>('calculate-dose-button')),
-    );
-    expect(button.onPressed, isNotNull);
-  });
+      final button = tester.widget<FilledButton>(
+        find.byKey(const ValueKey<String>('calculate-dose-button')),
+      );
+      expect(button.onPressed, isNotNull);
+    },
+  );
 
   testWidgets('calculator connects prescribed dose to CalculationCore memory', (
     tester,
@@ -59,7 +60,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Concentração estruturada: 500 mg / 1 mL'), findsOneWidget);
+    expect(
+      find.text('Concentração estruturada: 500 mg / 1 mL'),
+      findsOneWidget,
+    );
 
     await tester.enterText(
       find.byKey(const ValueKey<String>('prescribed-dose-field')),

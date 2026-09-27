@@ -68,8 +68,7 @@ class _MedicationDetailScreenState extends State<MedicationDetailScreen> {
       }
       setState(() {
         _medication = null;
-        _errorMessage =
-            'Não foi possível carregar a ficha com segurança.';
+        _errorMessage = 'Não foi possível carregar a ficha com segurança.';
         _loading = false;
       });
     }
@@ -100,9 +99,7 @@ class _MedicationDetailScreenState extends State<MedicationDetailScreen> {
       return;
     }
 
-    context.push(
-      '/medications/${medication.id}/calculator/${presentation.id}',
-    );
+    context.push('/medications/${medication.id}/calculator/${presentation.id}');
   }
 
   @override
@@ -127,10 +124,7 @@ class _MedicationDetailScreenState extends State<MedicationDetailScreen> {
         child: _loading
             ? const Center(child: CircularProgressIndicator())
             : _errorMessage != null
-            ? _DetailErrorState(
-                message: _errorMessage!,
-                onRetry: _load,
-              )
+            ? _DetailErrorState(message: _errorMessage!, onRetry: _load)
             : medication == null
             ? const SizedBox.shrink()
             : _MedicationDetailBody(
@@ -222,10 +216,7 @@ class _IdentitySection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          medication.displayName,
-          style: theme.textTheme.headlineSmall,
-        ),
+        Text(medication.displayName, style: theme.textTheme.headlineSmall),
         if (medication.brandName != null) ...[
           const SizedBox(height: 6),
           Text(
@@ -243,10 +234,7 @@ class _IdentitySection extends StatelessWidget {
             children: medication.activeIngredients
                 .map(
                   (ingredient) => Chip(
-                    avatar: const Icon(
-                      Icons.science_outlined,
-                      size: 18,
-                    ),
+                    avatar: const Icon(Icons.science_outlined, size: 18),
                     label: Text(ingredient.canonicalName),
                   ),
                 )
@@ -378,8 +366,8 @@ class _PresentationCard extends StatelessWidget {
                 child: Icon(
                   selectable
                       ? selected
-                          ? Icons.radio_button_checked_rounded
-                          : Icons.radio_button_unchecked_rounded
+                            ? Icons.radio_button_checked_rounded
+                            : Icons.radio_button_unchecked_rounded
                       : Icons.lock_outline_rounded,
                   color: selectable && selected
                       ? theme.colorScheme.primary
@@ -449,10 +437,7 @@ class _PresentationCard extends StatelessWidget {
 }
 
 class _MetadataLine extends StatelessWidget {
-  const _MetadataLine({
-    required this.label,
-    required this.value,
-  });
+  const _MetadataLine({required this.label, required this.value});
 
   final String label;
   final String value;
@@ -490,10 +475,7 @@ class _MetadataLine extends StatelessWidget {
 }
 
 class _DetailErrorState extends StatelessWidget {
-  const _DetailErrorState({
-    required this.message,
-    required this.onRetry,
-  });
+  const _DetailErrorState({required this.message, required this.onRetry});
 
   final String message;
   final VoidCallback onRetry;
@@ -526,9 +508,7 @@ class _DetailErrorState extends StatelessWidget {
                 Text(
                   message,
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: semantic.onCriticalContainer,
-                  ),
+                  style: TextStyle(color: semantic.onCriticalContainer),
                 ),
                 const SizedBox(height: 16),
                 FilledButton(

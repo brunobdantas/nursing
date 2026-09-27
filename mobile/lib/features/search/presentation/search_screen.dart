@@ -8,10 +8,7 @@ import '../../medication/data/medication_models.dart';
 import '../../medication/data/medication_repository.dart';
 
 class SearchScreen extends StatefulWidget {
-  const SearchScreen({
-    required this.repository,
-    super.key,
-  });
+  const SearchScreen({required this.repository, super.key});
 
   final MedicationRepository repository;
 
@@ -322,9 +319,7 @@ class _SearchResultCard extends StatelessWidget {
                   if (onCalculate != null)
                     Expanded(
                       child: FilledButton.icon(
-                        key: ValueKey<String>(
-                          'calculate-${item.id}',
-                        ),
+                        key: ValueKey<String>('calculate-${item.id}'),
                         onPressed: onCalculate,
                         icon: const Icon(Icons.calculate_outlined),
                         label: const Text('Calcular'),
@@ -349,18 +344,12 @@ class _EntityTypeChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final label = item.isMedicationProduct ? 'Medicamento' : 'Princípio ativo';
 
-    return Chip(
-      visualDensity: VisualDensity.compact,
-      label: Text(label),
-    );
+    return Chip(visualDensity: VisualDensity.compact, label: Text(label));
   }
 }
 
 class _SearchEmptyState extends StatelessWidget {
-  const _SearchEmptyState({
-    required this.theme,
-    super.key,
-  });
+  const _SearchEmptyState({required this.theme, super.key});
 
   final ThemeData theme;
 

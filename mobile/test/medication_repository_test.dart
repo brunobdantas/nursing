@@ -51,34 +51,39 @@ void main() {
       expect(response.items.single.hasCalculationReadyPresentation, isTrue);
     });
 
-    test('fails closed on calculation-ready presentation without concentration', () async {
-      final client = MockClient((request) async {
-        return http.Response(
-          jsonEncode(_detailJson(calculationReady: true, concentration: null)),
-          200,
-          headers: <String, String>{
-            'content-type': 'application/json; charset=utf-8',
-          },
+    test(
+      'fails closed on calculation-ready presentation without concentration',
+      () async {
+        final client = MockClient((request) async {
+          return http.Response(
+            jsonEncode(
+              _detailJson(calculationReady: true, concentration: null),
+            ),
+            200,
+            headers: <String, String>{
+              'content-type': 'application/json; charset=utf-8',
+            },
+          );
+        });
+        final repository = HttpMedicationRepository(
+          baseUri: Uri.parse('http://localhost:8000'),
+          client: client,
         );
-      });
-      final repository = HttpMedicationRepository(
-        baseUri: Uri.parse('http://localhost:8000'),
-        client: client,
-      );
 
-      expect(
-        () => repository.getMedicationDetail(
-          '11111111-1111-1111-1111-111111111111',
-        ),
-        throwsA(
-          isA<MedicationRepositoryException>().having(
-            (error) => error.kind,
-            'kind',
-            MedicationRepositoryErrorKind.invalidPayload,
+        expect(
+          () => repository.getMedicationDetail(
+            '11111111-1111-1111-1111-111111111111',
           ),
-        ),
-      );
-    });
+          throwsA(
+            isA<MedicationRepositoryException>().having(
+              (error) => error.kind,
+              'kind',
+              MedicationRepositoryErrorKind.invalidPayload,
+            ),
+          ),
+        );
+      },
+    );
 
     test('maps HTTP 503 to clinical data integrity failure', () async {
       final client = MockClient((request) async {
