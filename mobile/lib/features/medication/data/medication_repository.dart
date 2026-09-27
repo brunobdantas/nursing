@@ -199,6 +199,10 @@ final class LocalMedicationRepository implements MedicationRepository {
             medication['anvisa_registration_number'] as String?,
         manufacturerName: medication['manufacturer_name'] as String?,
         regulatoryStatus: medication['regulatory_status'] as String?,
+        therapeuticClass: medication['therapeutic_class'] as String?,
+        productType: medication['product_type'] as String?,
+        professionalLeafletUrl:
+            medication['professional_leaflet_url'] as String?,
         activeIngredients: ingredients,
         presentations: presentations,
       );

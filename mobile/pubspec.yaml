@@ -1,7 +1,7 @@
 name: nursing_clinical_core
 description: Intelligent drug reference and deterministic clinical calculation core for nursing.
 publish_to: none
-version: 1.0.1+2
+version: 1.1.0+3
 
 environment:
   sdk: ">=3.13.0 <4.0.0"
@@ -16,6 +16,7 @@ dependencies:
   shared_preferences: ^2.5.3
   sqflite: ^2.4.2
   path: ^1.9.1
+  url_launcher: ^6.3.2
 
 dev_dependencies:
   flutter_test:

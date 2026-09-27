@@ -295,6 +295,9 @@ final class MedicationDetailResponse {
     this.anvisaRegistrationNumber,
     this.manufacturerName,
     this.regulatoryStatus,
+    this.therapeuticClass,
+    this.productType,
+    this.professionalLeafletUrl,
   });
 
   factory MedicationDetailResponse.fromJson(Map<String, dynamic> json) {
@@ -316,6 +319,11 @@ final class MedicationDetailResponse {
       ),
       manufacturerName: _nullableString(json['manufacturer_name']),
       regulatoryStatus: _nullableString(json['regulatory_status']),
+      therapeuticClass: _nullableString(json['therapeutic_class']),
+      productType: _nullableString(json['product_type']),
+      professionalLeafletUrl: _nullableString(
+        json['professional_leaflet_url'],
+      ),
       activeIngredients: rawIngredients
           .map(
             (item) => ActiveIngredientSummary.fromJson(
@@ -338,6 +346,9 @@ final class MedicationDetailResponse {
   final String? anvisaRegistrationNumber;
   final String? manufacturerName;
   final String? regulatoryStatus;
+  final String? therapeuticClass;
+  final String? productType;
+  final String? professionalLeafletUrl;
   final List<ActiveIngredientSummary> activeIngredients;
   final List<PresentationDetail> presentations;
 

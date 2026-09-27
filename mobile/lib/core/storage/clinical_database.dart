@@ -9,7 +9,7 @@ final class ClinicalDatabase {
   ClinicalDatabase({DatabaseFactory? factory, this.databasePath})
     : _factory = factory ?? databaseFactory;
 
-  static const int schemaVersion = 1;
+  static const int schemaVersion = 2;
   static const String defaultFileName = 'nursing_clinical_v1.db';
   static const String contentVersionKey = 'clinical_content_version';
   static const String lastSyncAtKey = 'clinical_last_sync_at';
@@ -34,6 +34,7 @@ final class ClinicalDatabase {
           await db.execute('PRAGMA foreign_keys = ON');
         },
         onCreate: _createSchema,
+        onUpgrade: _upgradeSchema,
       ),
     );
     _database = opened;
@@ -78,7 +79,10 @@ final class ClinicalDatabase {
         normalized_generic_name TEXT NOT NULL,
         anvisa_registration_number TEXT,
         manufacturer_name TEXT,
-        regulatory_status TEXT
+        regulatory_status TEXT,
+        therapeutic_class TEXT,
+        product_type TEXT,
+        professional_leaflet_url TEXT
       )
     ''');
     await db.execute(
@@ -139,6 +143,24 @@ final class ClinicalDatabase {
         created_at TEXT NOT NULL
       )
     ''');
+  }
+
+  Future<void> _upgradeSchema(
+    Database db,
+    int oldVersion,
+    int newVersion,
+  ) async {
+    if (oldVersion < 2) {
+      await db.execute(
+        'ALTER TABLE medication_product ADD COLUMN therapeutic_class TEXT',
+      );
+      await db.execute(
+        'ALTER TABLE medication_product ADD COLUMN product_type TEXT',
+      );
+      await db.execute(
+        'ALTER TABLE medication_product ADD COLUMN professional_leaflet_url TEXT',
+      );
+    }
   }
 
   Future<String?> getContentVersion() async {
@@ -213,6 +235,9 @@ final class ClinicalDatabase {
           'anvisa_registration_number': medication.anvisaRegistrationNumber,
           'manufacturer_name': medication.manufacturerName,
           'regulatory_status': medication.regulatoryStatus,
+          'therapeutic_class': medication.therapeuticClass,
+          'product_type': medication.productType,
+          'professional_leaflet_url': medication.professionalLeafletUrl,
         }, conflictAlgorithm: ConflictAlgorithm.abort);
 
         for (

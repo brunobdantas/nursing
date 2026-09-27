@@ -37,6 +37,9 @@ final class SyncMedicationRecord {
     this.anvisaRegistrationNumber,
     this.manufacturerName,
     this.regulatoryStatus,
+    this.therapeuticClass,
+    this.productType,
+    this.professionalLeafletUrl,
   });
 
   factory SyncMedicationRecord.fromJson(Map<String, dynamic> json) {
@@ -59,6 +62,11 @@ final class SyncMedicationRecord {
       ),
       manufacturerName: _nullableString(json['manufacturer_name']),
       regulatoryStatus: _nullableString(json['regulatory_status']),
+      therapeuticClass: _nullableString(json['therapeutic_class']),
+      productType: _nullableString(json['product_type']),
+      professionalLeafletUrl: _nullableString(
+        json['professional_leaflet_url'],
+      ),
       activeIngredientIds: rawIngredientIds
           .map((value) => _requiredString(value, 'active_ingredient_ids[]'))
           .toList(growable: false),
@@ -73,6 +81,9 @@ final class SyncMedicationRecord {
   final String? anvisaRegistrationNumber;
   final String? manufacturerName;
   final String? regulatoryStatus;
+  final String? therapeuticClass;
+  final String? productType;
+  final String? professionalLeafletUrl;
   final List<String> activeIngredientIds;
 }
 
