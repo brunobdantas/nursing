@@ -90,6 +90,20 @@ def split_active_ingredients(value: str) -> list[str]:
     return result
 
 
+def is_regulatory_active(status: str | None) -> bool:
+    """Map ANVISA registration status to the app's active-content gate."""
+    if not status:
+        return False
+    normalized = normalize_name(status)
+    blocked = ("inativ", "cancel", "caduc", "suspens", "vencid")
+    if any(token in normalized for token in blocked):
+        return False
+    return any(
+        token in normalized
+        for token in ("valido", "ativo", "vigente", "regular")
+    )
+
+
 def _dosage_form_code(normalized_name: str) -> str:
     digest = hashlib.sha256(normalized_name.encode("utf-8")).hexdigest()[:12].upper()
     return f"ANVISA_{digest}"
@@ -174,6 +188,7 @@ async def _upsert_product(
     generic_name: str,
     manufacturer_name: str | None,
     regulatory_status: str | None,
+    is_active: bool,
 ) -> uuid.UUID:
     stmt = (
         pg_insert(MedicationProduct)
@@ -187,7 +202,7 @@ async def _upsert_product(
             manufacturer_name=manufacturer_name,
             regulatory_status=regulatory_status,
             country_code="BR",
-            is_active=True,
+            is_active=is_active,
         )
         .on_conflict_do_update(
             index_elements=[MedicationProduct.anvisa_registration_number],
@@ -199,7 +214,7 @@ async def _upsert_product(
                 "manufacturer_name": manufacturer_name,
                 "regulatory_status": regulatory_status,
                 "country_code": "BR",
-                "is_active": True,
+                "is_active": is_active,
                 "updated_at": func.now(),
             },
         )
@@ -423,6 +438,7 @@ async def resolve_entities(
             generic_name=generic_name,
             manufacturer_name=manufacturer,
             regulatory_status=regulatory_status,
+            is_active=is_regulatory_active(regulatory_status),
         )
         product_ids.add(product_id)
 

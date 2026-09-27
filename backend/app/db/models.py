@@ -256,6 +256,8 @@ class MedicationProduct(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     anvisa_registration_number: Mapped[str | None] = mapped_column(String(40))
     manufacturer_name: Mapped[str | None] = mapped_column(String(255), index=True)
     regulatory_status: Mapped[str | None] = mapped_column(String(80), index=True)
+    therapeutic_class: Mapped[str | None] = mapped_column(String(255))
+    product_type: Mapped[str | None] = mapped_column(String(160))
     country_code: Mapped[str] = mapped_column(String(2), nullable=False, default="BR")
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
