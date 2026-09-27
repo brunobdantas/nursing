@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../theme/clinical_theme.dart';
+import '../../home/data/recent_medication_repository.dart';
 import '../data/medication_models.dart';
 import '../data/medication_repository.dart';
 
@@ -9,12 +12,14 @@ class MedicationDetailScreen extends StatefulWidget {
   const MedicationDetailScreen({
     required this.medicationId,
     required this.repository,
+    required this.recentRepository,
     this.startCalculationFlow = false,
     super.key,
   });
 
   final String medicationId;
   final MedicationRepository repository;
+  final RecentMedicationRepository recentRepository;
   final bool startCalculationFlow;
 
   @override
@@ -53,6 +58,7 @@ class _MedicationDetailScreenState extends State<MedicationDetailScreen> {
         _selectedPresentationId = ready.length == 1 ? ready.single.id : null;
         _loading = false;
       });
+      unawaited(_recordRecent(medication));
     } on MedicationRepositoryException catch (error) {
       if (!mounted) {
         return;
@@ -71,6 +77,14 @@ class _MedicationDetailScreenState extends State<MedicationDetailScreen> {
         _errorMessage = 'Não foi possível carregar a ficha com segurança.';
         _loading = false;
       });
+    }
+  }
+
+  Future<void> _recordRecent(MedicationDetailResponse medication) async {
+    try {
+      await widget.recentRepository.recordMedication(medication);
+    } catch (_) {
+      // Recent history is convenience-only and must never block clinical content.
     }
   }
 
