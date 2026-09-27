@@ -5,12 +5,14 @@ import 'package:nursing_clinical_core/features/medication/presentation/medicatio
 import 'package:nursing_clinical_core/theme/clinical_theme.dart';
 
 import 'support/fake_medication_repository.dart';
+import 'support/fake_recent_medication_repository.dart';
 
 void main() {
   testWidgets(
     'medication detail renders identity, alerts and selected presentation',
     (tester) async {
       final repository = FakeMedicationRepository();
+      final recentRepository = FakeRecentMedicationRepository();
 
       await tester.pumpWidget(
         MaterialApp(
@@ -18,6 +20,7 @@ void main() {
           home: MedicationDetailScreen(
             medicationId: repository.detailResponse.id,
             repository: repository,
+            recentRepository: recentRepository,
             startCalculationFlow: true,
           ),
         ),
@@ -38,6 +41,7 @@ void main() {
         find.byKey(const ValueKey<String>('calculate-dose-button')),
       );
       expect(button.onPressed, isNotNull);
+      expect(recentRepository.recordCalls, 1);
     },
   );
 
