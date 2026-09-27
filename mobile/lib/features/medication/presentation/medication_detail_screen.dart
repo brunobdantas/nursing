@@ -126,9 +126,7 @@ class _MedicationDetailScreenState extends State<MedicationDetailScreen> {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Não foi possível atualizar o favorito.'),
-        ),
+        const SnackBar(content: Text('Não foi possível atualizar o favorito.')),
       );
     } finally {
       if (mounted) {

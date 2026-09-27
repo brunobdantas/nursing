@@ -2,11 +2,10 @@ import 'package:nursing_clinical_core/features/home/data/favorite_medication_rep
 
 final class FakeFavoriteMedicationRepository
     implements FavoriteMedicationRepository {
-  FakeFavoriteMedicationRepository({
-    List<FavoriteMedication>? initial,
-  }) : items = List<FavoriteMedication>.from(
-         initial ?? const <FavoriteMedication>[],
-       );
+  FakeFavoriteMedicationRepository({List<FavoriteMedication>? initial})
+    : items = List<FavoriteMedication>.from(
+        initial ?? const <FavoriteMedication>[],
+      );
 
   final List<FavoriteMedication> items;
   int loadCalls = 0;

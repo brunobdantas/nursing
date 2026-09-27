@@ -103,7 +103,9 @@ final class SyncService implements ClinicalSyncCoordinator {
     }
 
     try {
-      final response = await _client.get(uri, headers: headers).timeout(timeout);
+      final response = await _client
+          .get(uri, headers: headers)
+          .timeout(timeout);
 
       if (response.statusCode == HttpStatus.notModified) {
         return ClinicalSyncStatus(

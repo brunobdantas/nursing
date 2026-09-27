@@ -256,8 +256,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       padding: const EdgeInsets.only(bottom: 10),
                       child: _FavoriteMedicationCard(
                         item: item,
-                        onTap: () =>
-                            _openAndRefresh('/medications/${item.id}'),
+                        onTap: () => _openAndRefresh('/medications/${item.id}'),
                       ),
                     ),
                   ),
@@ -277,8 +276,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       padding: const EdgeInsets.only(bottom: 10),
                       child: _RecentMedicationCard(
                         item: item,
-                        onTap: () =>
-                            _openAndRefresh('/medications/${item.id}'),
+                        onTap: () => _openAndRefresh('/medications/${item.id}'),
                       ),
                     ),
                   ),
@@ -324,12 +322,12 @@ class _SyncStatusCard extends StatelessWidget {
     final current = status;
 
     final icon = switch (current?.state) {
-      ClinicalSyncState.current || ClinicalSyncState.updated =>
-        Icons.offline_pin_outlined,
+      ClinicalSyncState.current ||
+      ClinicalSyncState.updated => Icons.offline_pin_outlined,
       ClinicalSyncState.syncing => Icons.sync_rounded,
       ClinicalSyncState.offlineAvailable => Icons.cloud_off_outlined,
-      ClinicalSyncState.notDownloaded || ClinicalSyncState.unavailable =>
-        Icons.warning_amber_rounded,
+      ClinicalSyncState.notDownloaded ||
+      ClinicalSyncState.unavailable => Icons.warning_amber_rounded,
       null => Icons.sync_rounded,
     };
 
@@ -345,11 +343,7 @@ class _SyncStatusCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Icon(
-              icon,
-              size: 20,
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
+            Icon(icon, size: 20, color: theme.colorScheme.onSurfaceVariant),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
@@ -418,10 +412,7 @@ class _QuickAction extends StatelessWidget {
 }
 
 class _FavoriteMedicationCard extends StatelessWidget {
-  const _FavoriteMedicationCard({
-    required this.item,
-    required this.onTap,
-  });
+  const _FavoriteMedicationCard({required this.item, required this.onTap});
 
   final FavoriteMedication item;
   final VoidCallback onTap;
@@ -574,10 +565,7 @@ class _RecentEmptyState extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({
-    required this.icon,
-    required this.text,
-  });
+  const _EmptyState({required this.icon, required this.text});
 
   final IconData icon;
   final String text;
@@ -596,15 +584,9 @@ class _EmptyState extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(
-            icon,
-            size: 28,
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
+          Icon(icon, size: 28, color: theme.colorScheme.onSurfaceVariant),
           const SizedBox(width: 14),
-          Expanded(
-            child: Text(text, style: theme.textTheme.bodyLarge),
-          ),
+          Expanded(child: Text(text, style: theme.textTheme.bodyLarge)),
         ],
       ),
     );

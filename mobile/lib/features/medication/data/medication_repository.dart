@@ -38,9 +38,7 @@ abstract interface class MedicationRepository {
 }
 
 final class LocalMedicationRepository implements MedicationRepository {
-  const LocalMedicationRepository({
-    required this.database,
-  });
+  const LocalMedicationRepository({required this.database});
 
   final ClinicalDatabase database;
 
@@ -67,30 +65,20 @@ final class LocalMedicationRepository implements MedicationRepository {
 
       final items = <MedicationSearchResult>[
         ...ingredientRows.map(
-          (row) => _ingredientSearchResult(
-            row,
-            normalizedQuery,
-            approximate: false,
-          ),
+          (row) =>
+              _ingredientSearchResult(row, normalizedQuery, approximate: false),
         ),
         ...medicationRows.map(
-          (row) => _medicationSearchResult(
-            row,
-            normalizedQuery,
-            approximate: false,
-          ),
+          (row) =>
+              _medicationSearchResult(row, normalizedQuery, approximate: false),
         ),
       ];
 
       if (items.isEmpty) {
-        final approximateIngredientRows =
-            await database.queryApproximateIngredients(
-          normalizedQuery.length,
-        );
-        final approximateMedicationRows =
-            await database.queryApproximateMedications(
-          normalizedQuery.length,
-        );
+        final approximateIngredientRows = await database
+            .queryApproximateIngredients(normalizedQuery.length);
+        final approximateMedicationRows = await database
+            .queryApproximateMedications(normalizedQuery.length);
 
         for (final row in approximateIngredientRows) {
           final candidate = row['normalized_name'] as String;
@@ -128,26 +116,24 @@ final class LocalMedicationRepository implements MedicationRepository {
         }
       }
 
-      items.sort(
-        (a, b) {
-          final approximateCompare = a.isApproximate == b.isApproximate
-              ? 0
-              : a.isApproximate
-                  ? 1
-                  : -1;
-          if (approximateCompare != 0) {
-            return approximateCompare;
-          }
+      items.sort((a, b) {
+        final approximateCompare = a.isApproximate == b.isApproximate
+            ? 0
+            : a.isApproximate
+            ? 1
+            : -1;
+        if (approximateCompare != 0) {
+          return approximateCompare;
+        }
 
-          final scoreCompare = b.score.compareTo(a.score);
-          if (scoreCompare != 0) {
-            return scoreCompare;
-          }
-          return a.displayName.toLowerCase().compareTo(
-                b.displayName.toLowerCase(),
-              );
-        },
-      );
+        final scoreCompare = b.score.compareTo(a.score);
+        if (scoreCompare != 0) {
+          return scoreCompare;
+        }
+        return a.displayName.toLowerCase().compareTo(
+          b.displayName.toLowerCase(),
+        );
+      });
 
       final limited = items.take(20).toList(growable: false);
       return MedicationSearchResponse(
@@ -261,10 +247,7 @@ final class LocalMedicationRepository implements MedicationRepository {
     double? approximateScore,
   }) {
     final genericName = _requiredString(row, 'generic_name');
-    final normalizedGeneric = _requiredString(
-      row,
-      'normalized_generic_name',
-    );
+    final normalizedGeneric = _requiredString(row, 'normalized_generic_name');
     final brandName = row['brand_name'] as String?;
     final normalizedBrand = row['normalized_brand_name'] as String?;
 
@@ -301,7 +284,9 @@ final class LocalMedicationRepository implements MedicationRepository {
       row['concentration_denominator_value'],
       row['concentration_denominator_unit'],
     ];
-    final populatedParts = concentrationParts.where((value) => value != null).length;
+    final populatedParts = concentrationParts
+        .where((value) => value != null)
+        .length;
 
     ConcentrationData? concentration;
     if (populatedParts == concentrationParts.length) {
@@ -320,10 +305,7 @@ final class LocalMedicationRepository implements MedicationRepository {
         numeratorValue: numerator,
         numeratorUnit: _requiredString(row, 'concentration_unit'),
         denominatorValue: denominator,
-        denominatorUnit: _requiredString(
-          row,
-          'concentration_denominator_unit',
-        ),
+        denominatorUnit: _requiredString(row, 'concentration_denominator_unit'),
       );
     } else if (populatedParts != 0) {
       throw const FormatException(
@@ -346,19 +328,19 @@ final class LocalMedicationRepository implements MedicationRepository {
       throw const FormatException('routes_json must decode to a list.');
     }
 
-    final routes = decodedRoutes.map((item) {
-      if (item is! Map) {
-        throw const FormatException('Invalid route payload.');
-      }
-      final map = item.map(
-        (key, value) => MapEntry(key.toString(), value),
-      );
-      return RouteSummary(
-        id: _requiredString(map, 'id'),
-        code: _requiredString(map, 'code'),
-        name: _requiredString(map, 'name'),
-      );
-    }).toList(growable: false);
+    final routes = decodedRoutes
+        .map((item) {
+          if (item is! Map) {
+            throw const FormatException('Invalid route payload.');
+          }
+          final map = item.map((key, value) => MapEntry(key.toString(), value));
+          return RouteSummary(
+            id: _requiredString(map, 'id'),
+            code: _requiredString(map, 'code'),
+            name: _requiredString(map, 'name'),
+          );
+        })
+        .toList(growable: false);
 
     return PresentationDetail(
       id: _requiredString(row, 'id'),
@@ -380,10 +362,7 @@ final class LocalMedicationRepository implements MedicationRepository {
   }
 }
 
-(SearchMatchType, double) _rankMatch(
-  String candidate,
-  String normalizedQuery,
-) {
+(SearchMatchType, double) _rankMatch(String candidate, String normalizedQuery) {
   if (candidate == normalizedQuery) {
     return (SearchMatchType.exact, 1);
   }
@@ -436,7 +415,9 @@ double _similarity(String candidate, String query) {
   if (candidate == query) {
     return 1;
   }
-  final longest = candidate.length > query.length ? candidate.length : query.length;
+  final longest = candidate.length > query.length
+      ? candidate.length
+      : query.length;
   if (longest == 0) {
     return 1;
   }
@@ -460,13 +441,17 @@ int _levenshtein(String left, String right) {
     final current = List<int>.filled(right.length + 1, 0);
     current[0] = i + 1;
     for (var j = 0; j < right.length; j++) {
-      final substitutionCost = left.codeUnitAt(i) == right.codeUnitAt(j) ? 0 : 1;
+      final substitutionCost = left.codeUnitAt(i) == right.codeUnitAt(j)
+          ? 0
+          : 1;
       final insertion = current[j] + 1;
       final deletion = previous[j + 1] + 1;
       final substitution = previous[j] + substitutionCost;
-      current[j + 1] = <int>[insertion, deletion, substitution].reduce(
-        (first, second) => first < second ? first : second,
-      );
+      current[j + 1] = <int>[
+        insertion,
+        deletion,
+        substitution,
+      ].reduce((first, second) => first < second ? first : second);
     }
     previous = current;
   }

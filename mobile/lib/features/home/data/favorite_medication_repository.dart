@@ -22,9 +22,7 @@ abstract interface class FavoriteMedicationRepository {
 
 final class LocalFavoriteMedicationRepository
     implements FavoriteMedicationRepository {
-  const LocalFavoriteMedicationRepository({
-    required this.database,
-  });
+  const LocalFavoriteMedicationRepository({required this.database});
 
   final ClinicalDatabase database;
 
@@ -36,7 +34,8 @@ final class LocalFavoriteMedicationRepository
           (row) => FavoriteMedication(
             id: row['id']! as String,
             displayName:
-                (row['brand_name'] as String?) ?? row['generic_name']! as String,
+                (row['brand_name'] as String?) ??
+                row['generic_name']! as String,
             genericName: row['generic_name']! as String,
           ),
         )

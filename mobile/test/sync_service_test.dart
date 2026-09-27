@@ -40,9 +40,7 @@ void main() {
       return http.Response(
         '',
         304,
-        headers: <String, String>{
-          'etag': '"clinical-release-v1-testhash"',
-        },
+        headers: <String, String>{'etag': '"clinical-release-v1-testhash"'},
       );
     });
 
@@ -55,10 +53,7 @@ void main() {
     final first = await service.syncIfNeeded();
     expect(first.state, ClinicalSyncState.updated);
     expect(first.hasLocalContent, isTrue);
-    expect(
-      await database.getContentVersion(),
-      'clinical-release-v1-testhash',
-    );
+    expect(await database.getContentVersion(), 'clinical-release-v1-testhash');
     expect(await database.hasClinicalContent(), isTrue);
 
     final second = await service.syncIfNeeded();
@@ -67,68 +62,71 @@ void main() {
     expect(calls, 2);
   });
 
-  test('invalid remote release never destroys an existing offline base', () async {
-    final database = _database();
-    addTearDown(database.close);
+  test(
+    'invalid remote release never destroys an existing offline base',
+    () async {
+      final database = _database();
+      addTearDown(database.close);
 
-    final firstClient = MockClient((request) async {
-      return http.Response(
-        jsonEncode(_releaseJson()),
-        200,
-        headers: <String, String>{
-          'etag': '"clinical-release-v1-testhash"',
-          'x-clinical-release': 'clinical-release-v1-testhash',
-        },
+      final firstClient = MockClient((request) async {
+        return http.Response(
+          jsonEncode(_releaseJson()),
+          200,
+          headers: <String, String>{
+            'etag': '"clinical-release-v1-testhash"',
+            'x-clinical-release': 'clinical-release-v1-testhash',
+          },
+        );
+      });
+      final seedService = SyncService(
+        baseUri: Uri.parse('http://localhost:8000'),
+        database: database,
+        client: firstClient,
       );
-    });
-    final seedService = SyncService(
-      baseUri: Uri.parse('http://localhost:8000'),
-      database: database,
-      client: firstClient,
-    );
-    await seedService.syncIfNeeded();
+      await seedService.syncIfNeeded();
 
-    final brokenClient = MockClient((request) async {
-      return http.Response(
-        jsonEncode(<String, Object?>{
-          'release_schema': 'clinical-release-v1',
-          'content_version': 'clinical-release-v1-broken',
-          'generated_at': '2026-09-27T00:00:00Z',
-          'active_ingredients': <Object?>[],
-          'medications': <Object?>[
-            <String, Object?>{
-              'id': 'med-broken',
-              'brand_name': null,
-              'normalized_brand_name': null,
-              'generic_name': 'Quebrado',
-              'normalized_generic_name': 'quebrado',
-              'anvisa_registration_number': null,
-              'manufacturer_name': null,
-              'regulatory_status': 'VÁLIDO',
-              'active_ingredient_ids': <String>['missing-ingredient'],
-            },
-          ],
-          'presentations': <Object?>[],
-        }),
-        200,
+      final brokenClient = MockClient((request) async {
+        return http.Response(
+          jsonEncode(<String, Object?>{
+            'release_schema': 'clinical-release-v1',
+            'content_version': 'clinical-release-v1-broken',
+            'generated_at': '2026-09-27T00:00:00Z',
+            'active_ingredients': <Object?>[],
+            'medications': <Object?>[
+              <String, Object?>{
+                'id': 'med-broken',
+                'brand_name': null,
+                'normalized_brand_name': null,
+                'generic_name': 'Quebrado',
+                'normalized_generic_name': 'quebrado',
+                'anvisa_registration_number': null,
+                'manufacturer_name': null,
+                'regulatory_status': 'VÁLIDO',
+                'active_ingredient_ids': <String>['missing-ingredient'],
+              },
+            ],
+            'presentations': <Object?>[],
+          }),
+          200,
+        );
+      });
+
+      final service = SyncService(
+        baseUri: Uri.parse('http://localhost:8000'),
+        database: database,
+        client: brokenClient,
       );
-    });
+      final status = await service.syncIfNeeded();
 
-    final service = SyncService(
-      baseUri: Uri.parse('http://localhost:8000'),
-      database: database,
-      client: brokenClient,
-    );
-    final status = await service.syncIfNeeded();
-
-    expect(status.state, ClinicalSyncState.offlineAvailable);
-    expect(status.hasLocalContent, isTrue);
-    expect(
-      await database.getContentVersion(),
-      'clinical-release-v1-testhash',
-    );
-    expect(await database.medicationById('med-1'), isNotNull);
-  });
+      expect(status.state, ClinicalSyncState.offlineAvailable);
+      expect(status.hasLocalContent, isTrue);
+      expect(
+        await database.getContentVersion(),
+        'clinical-release-v1-testhash',
+      );
+      expect(await database.medicationById('med-1'), isNotNull);
+    },
+  );
 }
 
 ClinicalDatabase _database() {

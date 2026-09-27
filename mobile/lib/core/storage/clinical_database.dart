@@ -6,10 +6,8 @@ import 'package:sqflite/sqflite.dart';
 import '../sync/sync_models.dart';
 
 final class ClinicalDatabase {
-  ClinicalDatabase({
-    DatabaseFactory? factory,
-    this.databasePath,
-  }) : _factory = factory ?? databaseFactory;
+  ClinicalDatabase({DatabaseFactory? factory, this.databasePath})
+    : _factory = factory ?? databaseFactory;
 
   static const int schemaVersion = 1;
   static const String defaultFileName = 'nursing_clinical_v1.db';
@@ -26,7 +24,8 @@ final class ClinicalDatabase {
       return existing;
     }
 
-    final path = databasePath ?? p.join(await getDatabasesPath(), defaultFileName);
+    final path =
+        databasePath ?? p.join(await getDatabasesPath(), defaultFileName);
     final opened = await _factory.openDatabase(
       path,
       options: OpenDatabaseOptions(
@@ -194,37 +193,33 @@ final class ClinicalDatabase {
 
       final ingredientBatch = txn.batch();
       for (final ingredient in release.activeIngredients) {
-        ingredientBatch.insert(
-          'active_ingredient',
-          <String, Object?>{
-            'id': ingredient.id,
-            'canonical_name': ingredient.canonicalName,
-            'normalized_name': ingredient.normalizedName,
-            'atc_code': ingredient.atcCode,
-          },
-          conflictAlgorithm: ConflictAlgorithm.abort,
-        );
+        ingredientBatch.insert('active_ingredient', <String, Object?>{
+          'id': ingredient.id,
+          'canonical_name': ingredient.canonicalName,
+          'normalized_name': ingredient.normalizedName,
+          'atc_code': ingredient.atcCode,
+        }, conflictAlgorithm: ConflictAlgorithm.abort);
       }
       await ingredientBatch.commit(noResult: true);
 
       final medicationBatch = txn.batch();
       for (final medication in release.medications) {
-        medicationBatch.insert(
-          'medication_product',
-          <String, Object?>{
-            'id': medication.id,
-            'brand_name': medication.brandName,
-            'normalized_brand_name': medication.normalizedBrandName,
-            'generic_name': medication.genericName,
-            'normalized_generic_name': medication.normalizedGenericName,
-            'anvisa_registration_number': medication.anvisaRegistrationNumber,
-            'manufacturer_name': medication.manufacturerName,
-            'regulatory_status': medication.regulatoryStatus,
-          },
-          conflictAlgorithm: ConflictAlgorithm.abort,
-        );
+        medicationBatch.insert('medication_product', <String, Object?>{
+          'id': medication.id,
+          'brand_name': medication.brandName,
+          'normalized_brand_name': medication.normalizedBrandName,
+          'generic_name': medication.genericName,
+          'normalized_generic_name': medication.normalizedGenericName,
+          'anvisa_registration_number': medication.anvisaRegistrationNumber,
+          'manufacturer_name': medication.manufacturerName,
+          'regulatory_status': medication.regulatoryStatus,
+        }, conflictAlgorithm: ConflictAlgorithm.abort);
 
-        for (var index = 0; index < medication.activeIngredientIds.length; index++) {
+        for (
+          var index = 0;
+          index < medication.activeIngredientIds.length;
+          index++
+        ) {
           medicationBatch.insert(
             'medication_product_ingredient',
             <String, Object?>{
@@ -242,60 +237,48 @@ final class ClinicalDatabase {
       for (final record in release.presentations) {
         final presentation = record.presentation;
         final concentration = presentation.concentration;
-        presentationBatch.insert(
-          'presentation',
-          <String, Object?>{
-            'id': presentation.id,
-            'medication_product_id': record.medicationProductId,
-            'external_presentation_code': presentation.externalPresentationCode,
-            'description': presentation.description,
-            'strength_text': presentation.strengthText,
-            'dosage_form_id': presentation.dosageForm.id,
-            'dosage_form_code': presentation.dosageForm.code,
-            'dosage_form_name': presentation.dosageForm.name,
-            'routes_json': jsonEncode(
-              presentation.routes
-                  .map(
-                    (route) => <String, String>{
-                      'id': route.id,
-                      'code': route.code,
-                      'name': route.name,
-                    },
-                  )
-                  .toList(growable: false),
-            ),
-            'concentration_value': concentration?.numeratorValue.toString(),
-            'concentration_unit': concentration?.numeratorUnit,
-            'concentration_denominator_value':
-                concentration?.denominatorValue.toString(),
-            'concentration_denominator_unit': concentration?.denominatorUnit,
-            'package_quantity': presentation.packageQuantity?.toString(),
-            'package_unit': presentation.packageUnit,
-            'calculation_ready': presentation.calculationReady ? 1 : 0,
-            'regulatory_status': presentation.regulatoryStatus,
-          },
-          conflictAlgorithm: ConflictAlgorithm.abort,
-        );
+        presentationBatch.insert('presentation', <String, Object?>{
+          'id': presentation.id,
+          'medication_product_id': record.medicationProductId,
+          'external_presentation_code': presentation.externalPresentationCode,
+          'description': presentation.description,
+          'strength_text': presentation.strengthText,
+          'dosage_form_id': presentation.dosageForm.id,
+          'dosage_form_code': presentation.dosageForm.code,
+          'dosage_form_name': presentation.dosageForm.name,
+          'routes_json': jsonEncode(
+            presentation.routes
+                .map(
+                  (route) => <String, String>{
+                    'id': route.id,
+                    'code': route.code,
+                    'name': route.name,
+                  },
+                )
+                .toList(growable: false),
+          ),
+          'concentration_value': concentration?.numeratorValue.toString(),
+          'concentration_unit': concentration?.numeratorUnit,
+          'concentration_denominator_value': concentration?.denominatorValue
+              .toString(),
+          'concentration_denominator_unit': concentration?.denominatorUnit,
+          'package_quantity': presentation.packageQuantity?.toString(),
+          'package_unit': presentation.packageUnit,
+          'calculation_ready': presentation.calculationReady ? 1 : 0,
+          'regulatory_status': presentation.regulatoryStatus,
+        }, conflictAlgorithm: ConflictAlgorithm.abort);
       }
       await presentationBatch.commit(noResult: true);
 
       final now = DateTime.now().toUtc().toIso8601String();
-      await txn.insert(
-        'sync_metadata',
-        <String, Object?>{
-          'key': contentVersionKey,
-          'value': release.contentVersion,
-        },
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
-      await txn.insert(
-        'sync_metadata',
-        <String, Object?>{
-          'key': lastSyncAtKey,
-          'value': now,
-        },
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
+      await txn.insert('sync_metadata', <String, Object?>{
+        'key': contentVersionKey,
+        'value': release.contentVersion,
+      }, conflictAlgorithm: ConflictAlgorithm.replace);
+      await txn.insert('sync_metadata', <String, Object?>{
+        'key': lastSyncAtKey,
+        'value': now,
+      }, conflictAlgorithm: ConflictAlgorithm.replace);
     });
   }
 
@@ -426,7 +409,9 @@ final class ClinicalDatabase {
     );
   }
 
-  Future<List<Map<String, Object?>>> presentationsForMedication(String id) async {
+  Future<List<Map<String, Object?>>> presentationsForMedication(
+    String id,
+  ) async {
     final db = await database;
     return db.query(
       'presentation',
@@ -451,14 +436,10 @@ final class ClinicalDatabase {
   Future<void> setFavorite(String medicationId, bool favorite) async {
     final db = await database;
     if (favorite) {
-      await db.insert(
-        'favorite_medication',
-        <String, Object?>{
-          'medication_product_id': medicationId,
-          'created_at': DateTime.now().toUtc().toIso8601String(),
-        },
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
+      await db.insert('favorite_medication', <String, Object?>{
+        'medication_product_id': medicationId,
+        'created_at': DateTime.now().toUtc().toIso8601String(),
+      }, conflictAlgorithm: ConflictAlgorithm.replace);
       return;
     }
 

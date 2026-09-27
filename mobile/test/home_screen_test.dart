@@ -95,9 +95,7 @@ void main() {
     expect(find.text('substância favorita'), findsOneWidget);
     expect(
       find.byKey(
-        const ValueKey<String>(
-          'favorite-22222222-2222-2222-2222-222222222222',
-        ),
+        const ValueKey<String>('favorite-22222222-2222-2222-2222-222222222222'),
       ),
       findsOneWidget,
     );

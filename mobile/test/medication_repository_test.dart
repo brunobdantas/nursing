@@ -10,29 +10,32 @@ void main() {
   setUpAll(sqfliteFfiInit);
 
   group('LocalMedicationRepository', () {
-    test('searches medication and active ingredient only from SQLite', () async {
-      final database = _newDatabase();
-      addTearDown(database.close);
-      await database.replaceClinicalRelease(_sampleRelease());
+    test(
+      'searches medication and active ingredient only from SQLite',
+      () async {
+        final database = _newDatabase();
+        addTearDown(database.close);
+        await database.replaceClinicalRelease(_sampleRelease());
 
-      final repository = LocalMedicationRepository(database: database);
-      final response = await repository.searchMedications('dipirona');
+        final repository = LocalMedicationRepository(database: database);
+        final response = await repository.searchMedications('dipirona');
 
-      expect(response.returned, 2);
-      expect(
-        response.items.map((item) => item.entityType),
-        containsAll(<SearchEntityType>[
-          SearchEntityType.activeIngredient,
-          SearchEntityType.medicationProduct,
-        ]),
-      );
-      final medication = response.items.firstWhere(
-        (item) => item.entityType == SearchEntityType.medicationProduct,
-      );
-      expect(medication.displayName, 'Novalgina');
-      expect(medication.hasCalculationReadyPresentation, isTrue);
-      expect(medication.isApproximate, isFalse);
-    });
+        expect(response.returned, 2);
+        expect(
+          response.items.map((item) => item.entityType),
+          containsAll(<SearchEntityType>[
+            SearchEntityType.activeIngredient,
+            SearchEntityType.medicationProduct,
+          ]),
+        );
+        final medication = response.items.firstWhere(
+          (item) => item.entityType == SearchEntityType.medicationProduct,
+        );
+        expect(medication.displayName, 'Novalgina');
+        expect(medication.hasCalculationReadyPresentation, isTrue);
+        expect(medication.isApproximate, isFalse);
+      },
+    );
 
     test('marks typo fallback explicitly as approximate LASA result', () async {
       final database = _newDatabase();
@@ -52,53 +55,59 @@ void main() {
       );
     });
 
-    test('opens medication details with structured concentration offline', () async {
-      final database = _newDatabase();
-      addTearDown(database.close);
-      await database.replaceClinicalRelease(_sampleRelease());
+    test(
+      'opens medication details with structured concentration offline',
+      () async {
+        final database = _newDatabase();
+        addTearDown(database.close);
+        await database.replaceClinicalRelease(_sampleRelease());
 
-      final repository = LocalMedicationRepository(database: database);
-      final detail = await repository.getMedicationDetail(_medicationId);
+        final repository = LocalMedicationRepository(database: database);
+        final detail = await repository.getMedicationDetail(_medicationId);
 
-      expect(detail.genericName, 'Dipirona');
-      expect(detail.activeIngredients.single.canonicalName, 'Dipirona');
-      expect(detail.presentations.single.calculationReady, isTrue);
-      expect(
-        detail.presentations.single.concentration?.numeratorValue,
-        Decimal.parse('500'),
-      );
-      expect(
-        detail.presentations.single.concentration?.denominatorUnit,
-        'mL',
-      );
-    });
+        expect(detail.genericName, 'Dipirona');
+        expect(detail.activeIngredients.single.canonicalName, 'Dipirona');
+        expect(detail.presentations.single.calculationReady, isTrue);
+        expect(
+          detail.presentations.single.concentration?.numeratorValue,
+          Decimal.parse('500'),
+        );
+        expect(
+          detail.presentations.single.concentration?.denominatorUnit,
+          'mL',
+        );
+      },
+    );
 
-    test('fails closed if local calculator-ready row is structurally corrupt', () async {
-      final database = _newDatabase();
-      addTearDown(database.close);
-      await database.replaceClinicalRelease(_sampleRelease());
+    test(
+      'fails closed if local calculator-ready row is structurally corrupt',
+      () async {
+        final database = _newDatabase();
+        addTearDown(database.close);
+        await database.replaceClinicalRelease(_sampleRelease());
 
-      final sqlite = await database.database;
-      await sqlite.update(
-        'presentation',
-        <String, Object?>{'concentration_unit': null},
-        where: 'id = ?',
-        whereArgs: <Object>[_presentationId],
-      );
+        final sqlite = await database.database;
+        await sqlite.update(
+          'presentation',
+          <String, Object?>{'concentration_unit': null},
+          where: 'id = ?',
+          whereArgs: <Object>[_presentationId],
+        );
 
-      final repository = LocalMedicationRepository(database: database);
+        final repository = LocalMedicationRepository(database: database);
 
-      expect(
-        () => repository.getMedicationDetail(_medicationId),
-        throwsA(
-          isA<MedicationRepositoryException>().having(
-            (error) => error.kind,
-            'kind',
-            MedicationRepositoryErrorKind.clinicalDataIntegrity,
+        expect(
+          () => repository.getMedicationDetail(_medicationId),
+          throwsA(
+            isA<MedicationRepositoryException>().having(
+              (error) => error.kind,
+              'kind',
+              MedicationRepositoryErrorKind.clinicalDataIntegrity,
+            ),
           ),
-        ),
-      );
-    });
+        );
+      },
+    );
   });
 }
 

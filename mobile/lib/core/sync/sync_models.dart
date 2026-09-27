@@ -11,10 +11,7 @@ final class SyncActiveIngredientRecord {
   factory SyncActiveIngredientRecord.fromJson(Map<String, dynamic> json) {
     return SyncActiveIngredientRecord(
       id: _requiredString(json['id'], 'id'),
-      canonicalName: _requiredString(
-        json['canonical_name'],
-        'canonical_name',
-      ),
+      canonicalName: _requiredString(json['canonical_name'], 'canonical_name'),
       normalizedName: _requiredString(
         json['normalized_name'],
         'normalized_name',
@@ -45,17 +42,13 @@ final class SyncMedicationRecord {
   factory SyncMedicationRecord.fromJson(Map<String, dynamic> json) {
     final rawIngredientIds = json['active_ingredient_ids'];
     if (rawIngredientIds is! List<dynamic>) {
-      throw const FormatException(
-        'active_ingredient_ids must be a list.',
-      );
+      throw const FormatException('active_ingredient_ids must be a list.');
     }
 
     return SyncMedicationRecord(
       id: _requiredString(json['id'], 'id'),
       brandName: _nullableString(json['brand_name']),
-      normalizedBrandName: _nullableString(
-        json['normalized_brand_name'],
-      ),
+      normalizedBrandName: _nullableString(json['normalized_brand_name']),
       genericName: _requiredString(json['generic_name'], 'generic_name'),
       normalizedGenericName: _requiredString(
         json['normalized_generic_name'],
@@ -67,12 +60,7 @@ final class SyncMedicationRecord {
       manufacturerName: _nullableString(json['manufacturer_name']),
       regulatoryStatus: _nullableString(json['regulatory_status']),
       activeIngredientIds: rawIngredientIds
-          .map(
-            (value) => _requiredString(
-              value,
-              'active_ingredient_ids[]',
-            ),
-          )
+          .map((value) => _requiredString(value, 'active_ingredient_ids[]'))
           .toList(growable: false),
     );
   }
@@ -139,9 +127,7 @@ final class ClinicalSyncRelease {
       'content_version',
     );
     if (!contentVersion.startsWith('clinical-release-v1-')) {
-      throw const FormatException(
-        'Invalid clinical release content version.',
-      );
+      throw const FormatException('Invalid clinical release content version.');
     }
 
     final generatedAtRaw = _requiredString(
@@ -150,9 +136,7 @@ final class ClinicalSyncRelease {
     );
     final generatedAt = DateTime.tryParse(generatedAtRaw);
     if (generatedAt == null) {
-      throw const FormatException(
-        'Invalid clinical release generated_at.',
-      );
+      throw const FormatException('Invalid clinical release generated_at.');
     }
 
     final rawIngredients = json['active_ingredients'];
@@ -230,9 +214,7 @@ Map<String, dynamic> _requiredMap(Object? value, String field) {
     return value;
   }
   if (value is Map) {
-    return value.map(
-      (key, item) => MapEntry(key.toString(), item),
-    );
+    return value.map((key, item) => MapEntry(key.toString(), item));
   }
   throw FormatException('$field must be an object.');
 }
