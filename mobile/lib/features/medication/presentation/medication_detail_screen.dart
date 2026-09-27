@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../theme/clinical_theme.dart';
+import '../../home/data/favorite_medication_repository.dart';
 import '../../home/data/recent_medication_repository.dart';
 import '../data/medication_models.dart';
 import '../data/medication_repository.dart';
@@ -13,6 +14,7 @@ class MedicationDetailScreen extends StatefulWidget {
     required this.medicationId,
     required this.repository,
     required this.recentRepository,
+    required this.favoriteRepository,
     this.startCalculationFlow = false,
     super.key,
   });
@@ -20,6 +22,7 @@ class MedicationDetailScreen extends StatefulWidget {
   final String medicationId;
   final MedicationRepository repository;
   final RecentMedicationRepository recentRepository;
+  final FavoriteMedicationRepository favoriteRepository;
   final bool startCalculationFlow;
 
   @override
@@ -31,6 +34,8 @@ class _MedicationDetailScreenState extends State<MedicationDetailScreen> {
   String? _selectedPresentationId;
   String? _errorMessage;
   bool _loading = true;
+  bool _isFavorite = false;
+  bool _favoriteBusy = false;
 
   @override
   void initState() {
@@ -48,6 +53,13 @@ class _MedicationDetailScreenState extends State<MedicationDetailScreen> {
       final medication = await widget.repository.getMedicationDetail(
         widget.medicationId,
       );
+      var isFavorite = false;
+      try {
+        isFavorite = await widget.favoriteRepository.isFavorite(medication.id);
+      } catch (_) {
+        // Favorites are convenience-only and never block clinical content.
+      }
+
       if (!mounted) {
         return;
       }
@@ -56,6 +68,7 @@ class _MedicationDetailScreenState extends State<MedicationDetailScreen> {
       setState(() {
         _medication = medication;
         _selectedPresentationId = ready.length == 1 ? ready.single.id : null;
+        _isFavorite = isFavorite;
         _loading = false;
       });
       unawaited(_recordRecent(medication));
@@ -85,6 +98,44 @@ class _MedicationDetailScreenState extends State<MedicationDetailScreen> {
       await widget.recentRepository.recordMedication(medication);
     } catch (_) {
       // Recent history is convenience-only and must never block clinical content.
+    }
+  }
+
+  Future<void> _toggleFavorite() async {
+    final medication = _medication;
+    if (medication == null || _favoriteBusy) {
+      return;
+    }
+
+    setState(() {
+      _favoriteBusy = true;
+    });
+
+    try {
+      final nextValue = await widget.favoriteRepository.toggleFavorite(
+        medication.id,
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isFavorite = nextValue;
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Não foi possível atualizar o favorito.'),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _favoriteBusy = false;
+        });
+      }
     }
   }
 
@@ -122,7 +173,22 @@ class _MedicationDetailScreenState extends State<MedicationDetailScreen> {
     final canCalculate = _selectedPresentation != null;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Ficha do medicamento')),
+      appBar: AppBar(
+        title: const Text('Ficha do medicamento'),
+        actions: [
+          if (medication != null)
+            IconButton(
+              key: const ValueKey<String>('favorite-toggle-button'),
+              tooltip: _isFavorite
+                  ? 'Remover dos favoritos'
+                  : 'Adicionar aos favoritos',
+              onPressed: _favoriteBusy ? null : _toggleFavorite,
+              icon: Icon(
+                _isFavorite ? Icons.star_rounded : Icons.star_border_rounded,
+              ),
+            ),
+        ],
+      ),
       bottomNavigationBar: medication == null
           ? null
           : SafeArea(
