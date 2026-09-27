@@ -1,9 +1,8 @@
-import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 
-import 'package:http/http.dart' as http;
+import 'package:decimal/decimal.dart';
 
+import '../../../core/storage/clinical_database.dart';
 import 'medication_models.dart';
 
 enum MedicationRepositoryErrorKind {
@@ -13,6 +12,7 @@ enum MedicationRepositoryErrorKind {
   invalidPayload,
   notFound,
   clinicalDataIntegrity,
+  localStorage,
   unknown,
 }
 
@@ -37,39 +37,132 @@ abstract interface class MedicationRepository {
   Future<MedicationDetailResponse> getMedicationDetail(String id);
 }
 
-final class HttpMedicationRepository implements MedicationRepository {
-  HttpMedicationRepository({
-    required this.baseUri,
-    http.Client? client,
-    this.timeout = const Duration(seconds: 10),
-  }) : _client = client ?? http.Client(),
-       _ownsClient = client == null;
+final class LocalMedicationRepository implements MedicationRepository {
+  const LocalMedicationRepository({
+    required ClinicalDatabase database,
+  }) : _database = database;
 
-  final Uri baseUri;
-  final http.Client _client;
-  final bool _ownsClient;
-  final Duration timeout;
+  final ClinicalDatabase _database;
 
   @override
   Future<MedicationSearchResponse> searchMedications(String query) async {
-    final normalizedQuery = query.trim();
-    if (normalizedQuery.length < 2) {
+    final trimmed = query.trim();
+    if (trimmed.length < 2) {
       return MedicationSearchResponse(
-        query: normalizedQuery,
+        query: trimmed,
         items: const <MedicationSearchResult>[],
         returned: 0,
       );
     }
 
-    final uri = _resolve(
-      '/v1/medications/search',
-      queryParameters: <String, String>{'q': normalizedQuery},
-    );
-    final json = await _getJson(uri);
-    return _parse(
-      () => MedicationSearchResponse.fromJson(json),
-      operation: 'busca de medicamentos',
-    );
+    final normalizedQuery = _normalizeSearchTerm(trimmed);
+
+    try {
+      final ingredientRows = await _database.queryIngredientMatches(
+        normalizedQuery,
+      );
+      final medicationRows = await _database.queryMedicationMatches(
+        normalizedQuery,
+      );
+
+      final items = <MedicationSearchResult>[
+        ...ingredientRows.map(
+          (row) => _ingredientSearchResult(
+            row,
+            normalizedQuery,
+            approximate: false,
+          ),
+        ),
+        ...medicationRows.map(
+          (row) => _medicationSearchResult(
+            row,
+            normalizedQuery,
+            approximate: false,
+          ),
+        ),
+      ];
+
+      if (items.isEmpty) {
+        final approximateIngredientRows =
+            await _database.queryApproximateIngredients(
+          normalizedQuery.length,
+        );
+        final approximateMedicationRows =
+            await _database.queryApproximateMedications(
+          normalizedQuery.length,
+        );
+
+        for (final row in approximateIngredientRows) {
+          final candidate = row['normalized_name'] as String;
+          final score = _similarity(candidate, normalizedQuery);
+          if (score >= 0.64) {
+            items.add(
+              _ingredientSearchResult(
+                row,
+                normalizedQuery,
+                approximate: true,
+                approximateScore: score,
+              ),
+            );
+          }
+        }
+
+        for (final row in approximateMedicationRows) {
+          final generic = row['normalized_generic_name'] as String;
+          final brand = row['normalized_brand_name'] as String?;
+          final score = <double>[
+            _similarity(generic, normalizedQuery),
+            if (brand != null) _similarity(brand, normalizedQuery),
+          ].reduce((first, second) => first > second ? first : second);
+
+          if (score >= 0.64) {
+            items.add(
+              _medicationSearchResult(
+                row,
+                normalizedQuery,
+                approximate: true,
+                approximateScore: score,
+              ),
+            );
+          }
+        }
+      }
+
+      items.sort(
+        (a, b) {
+          final approximateCompare = a.isApproximate == b.isApproximate
+              ? 0
+              : a.isApproximate
+                  ? 1
+                  : -1;
+          if (approximateCompare != 0) {
+            return approximateCompare;
+          }
+
+          final scoreCompare = b.score.compareTo(a.score);
+          if (scoreCompare != 0) {
+            return scoreCompare;
+          }
+          return a.displayName.toLowerCase().compareTo(
+                b.displayName.toLowerCase(),
+              );
+        },
+      );
+
+      final limited = items.take(20).toList(growable: false);
+      return MedicationSearchResponse(
+        query: trimmed,
+        items: limited,
+        returned: limited.length,
+      );
+    } on MedicationRepositoryException {
+      rethrow;
+    } catch (_) {
+      throw const MedicationRepositoryException(
+        kind: MedicationRepositoryErrorKind.localStorage,
+        message: 'Não foi possível consultar a base clínica local.',
+      );
+    }
   }
 
   @override
@@ -82,122 +175,315 @@ final class HttpMedicationRepository implements MedicationRepository {
       );
     }
 
-    final uri = _resolve('/v1/medications/$normalizedId');
-    final json = await _getJson(uri);
-    return _parse(
-      () => MedicationDetailResponse.fromJson(json),
-      operation: 'detalhes do medicamento',
-    );
-  }
-
-  void close() {
-    if (_ownsClient) {
-      _client.close();
-    }
-  }
-
-  Uri _resolve(String path, {Map<String, String>? queryParameters}) {
-    final basePath = baseUri.path.endsWith('/')
-        ? baseUri.path.substring(0, baseUri.path.length - 1)
-        : baseUri.path;
-    return baseUri.replace(
-      path: '$basePath$path',
-      queryParameters: queryParameters,
-    );
-  }
-
-  Future<Map<String, dynamic>> _getJson(Uri uri) async {
     try {
-      final response = await _client
-          .get(
-            uri,
-            headers: const <String, String>{
-              HttpHeaders.acceptHeader: 'application/json',
-            },
-          )
-          .timeout(timeout);
-
-      if (response.statusCode == 404) {
+      final medication = await _database.medicationById(normalizedId);
+      if (medication == null) {
         throw const MedicationRepositoryException(
           kind: MedicationRepositoryErrorKind.notFound,
-          message: 'Medicamento não encontrado.',
-          statusCode: 404,
+          message: 'Medicamento não encontrado na base clínica offline.',
         );
       }
 
-      if (response.statusCode == 503) {
-        throw const MedicationRepositoryException(
-          kind: MedicationRepositoryErrorKind.clinicalDataIntegrity,
-          message:
-              'Os dados clínicos deste medicamento estão temporariamente '
-              'indisponíveis para uso seguro.',
-          statusCode: 503,
-        );
-      }
+      final ingredientRows = await _database.ingredientsForMedication(
+        normalizedId,
+      );
+      final presentationRows = await _database.presentationsForMedication(
+        normalizedId,
+      );
 
-      if (response.statusCode < 200 || response.statusCode >= 300) {
-        throw MedicationRepositoryException(
-          kind: MedicationRepositoryErrorKind.badResponse,
-          message:
-              'O serviço retornou uma resposta inesperada '
-              '(${response.statusCode}).',
-          statusCode: response.statusCode,
-        );
-      }
+      final ingredients = ingredientRows
+          .map(
+            (row) => ActiveIngredientSummary(
+              id: _requiredString(row, 'id'),
+              canonicalName: _requiredString(row, 'canonical_name'),
+              atcCode: row['atc_code'] as String?,
+            ),
+          )
+          .toList(growable: false);
 
-      final decoded = jsonDecode(utf8.decode(response.bodyBytes));
-      if (decoded is! Map<String, dynamic>) {
-        throw const MedicationRepositoryException(
-          kind: MedicationRepositoryErrorKind.invalidPayload,
-          message: 'A API retornou um formato de dados inválido.',
-        );
-      }
-      return decoded;
+      final presentations = presentationRows
+          .map(_presentationFromRow)
+          .toList(growable: false);
+
+      return MedicationDetailResponse(
+        id: _requiredString(medication, 'id'),
+        brandName: medication['brand_name'] as String?,
+        genericName: _requiredString(medication, 'generic_name'),
+        anvisaRegistrationNumber:
+            medication['anvisa_registration_number'] as String?,
+        manufacturerName: medication['manufacturer_name'] as String?,
+        regulatoryStatus: medication['regulatory_status'] as String?,
+        activeIngredients: ingredients,
+        presentations: presentations,
+      );
     } on MedicationRepositoryException {
       rethrow;
-    } on TimeoutException {
-      throw const MedicationRepositoryException(
-        kind: MedicationRepositoryErrorKind.timeout,
-        message: 'A consulta excedeu o tempo limite. Tente novamente.',
-      );
-    } on http.ClientException {
-      throw const MedicationRepositoryException(
-        kind: MedicationRepositoryErrorKind.network,
-        message: 'Não foi possível conectar ao serviço de medicamentos.',
-      );
-    } on SocketException {
-      throw const MedicationRepositoryException(
-        kind: MedicationRepositoryErrorKind.network,
-        message: 'Sem conexão de rede disponível.',
-      );
-    } on FormatException {
-      throw const MedicationRepositoryException(
-        kind: MedicationRepositoryErrorKind.invalidPayload,
-        message: 'A API retornou dados inválidos.',
+    } on FormatException catch (error) {
+      throw MedicationRepositoryException(
+        kind: MedicationRepositoryErrorKind.clinicalDataIntegrity,
+        message:
+            'A base clínica local contém dados inconsistentes: ${error.message}',
       );
     } catch (_) {
       throw const MedicationRepositoryException(
-        kind: MedicationRepositoryErrorKind.unknown,
-        message: 'Não foi possível concluir a consulta com segurança.',
+        kind: MedicationRepositoryErrorKind.localStorage,
+        message: 'Não foi possível abrir a ficha na base clínica local.',
       );
     }
   }
 
-  T _parse<T>(T Function() parser, {required String operation}) {
-    try {
-      return parser();
-    } on FormatException {
-      throw MedicationRepositoryException(
-        kind: MedicationRepositoryErrorKind.invalidPayload,
-        message:
-            'Os dados recebidos na $operation não passaram nas validações '
-            'de segurança.',
+  MedicationSearchResult _ingredientSearchResult(
+    Map<String, Object?> row,
+    String normalizedQuery, {
+    required bool approximate,
+    double? approximateScore,
+  }) {
+    final normalizedName = _requiredString(row, 'normalized_name');
+    final ranked = approximate
+        ? (SearchMatchType.approximate, approximateScore ?? 0.5)
+        : _rankMatch(normalizedName, normalizedQuery);
+
+    return MedicationSearchResult(
+      id: _requiredString(row, 'id'),
+      entityType: SearchEntityType.activeIngredient,
+      displayName: _requiredString(row, 'canonical_name'),
+      matchType: ranked.$1,
+      score: ranked.$2,
+      isApproximate: approximate,
+      hasCalculationReadyPresentation: false,
+    );
+  }
+
+  MedicationSearchResult _medicationSearchResult(
+    Map<String, Object?> row,
+    String normalizedQuery, {
+    required bool approximate,
+    double? approximateScore,
+  }) {
+    final genericName = _requiredString(row, 'generic_name');
+    final normalizedGeneric = _requiredString(
+      row,
+      'normalized_generic_name',
+    );
+    final brandName = row['brand_name'] as String?;
+    final normalizedBrand = row['normalized_brand_name'] as String?;
+
+    final ranked = approximate
+        ? (SearchMatchType.approximate, approximateScore ?? 0.5)
+        : <(SearchMatchType, double)>[
+            _rankMatch(normalizedGeneric, normalizedQuery),
+            if (normalizedBrand != null)
+              _rankMatch(normalizedBrand, normalizedQuery),
+          ].reduce((first, second) => first.$2 >= second.$2 ? first : second);
+
+    final calculationFlag = row['has_calculation_ready_presentation'];
+    final hasCalculationReady = calculationFlag == 1 || calculationFlag == true;
+
+    return MedicationSearchResult(
+      id: _requiredString(row, 'id'),
+      entityType: SearchEntityType.medicationProduct,
+      displayName: brandName ?? genericName,
+      secondaryName: brandName == null ? null : genericName,
+      matchType: ranked.$1,
+      score: ranked.$2,
+      isApproximate: approximate,
+      hasCalculationReadyPresentation: hasCalculationReady,
+    );
+  }
+
+  PresentationDetail _presentationFromRow(Map<String, Object?> row) {
+    final calculationFlag = row['calculation_ready'];
+    final calculationReady = calculationFlag == 1 || calculationFlag == true;
+
+    final concentrationParts = <Object?>[
+      row['concentration_value'],
+      row['concentration_unit'],
+      row['concentration_denominator_value'],
+      row['concentration_denominator_unit'],
+    ];
+    final populatedParts = concentrationParts.where((value) => value != null).length;
+
+    ConcentrationData? concentration;
+    if (populatedParts == concentrationParts.length) {
+      final numerator = Decimal.parse(
+        _requiredString(row, 'concentration_value'),
       );
-    } catch (_) {
-      throw MedicationRepositoryException(
-        kind: MedicationRepositoryErrorKind.invalidPayload,
-        message: 'Os dados recebidos na $operation não puderam ser validados.',
+      final denominator = Decimal.parse(
+        _requiredString(row, 'concentration_denominator_value'),
+      );
+      if (numerator <= Decimal.zero || denominator <= Decimal.zero) {
+        throw const FormatException(
+          'Structured concentration must contain positive values.',
+        );
+      }
+      concentration = ConcentrationData(
+        numeratorValue: numerator,
+        numeratorUnit: _requiredString(row, 'concentration_unit'),
+        denominatorValue: denominator,
+        denominatorUnit: _requiredString(
+          row,
+          'concentration_denominator_unit',
+        ),
+      );
+    } else if (populatedParts != 0) {
+      throw const FormatException(
+        'Partial structured concentration is not allowed.',
       );
     }
+
+    if (calculationReady && concentration == null) {
+      throw const FormatException(
+        'calculation_ready=true without complete structured concentration.',
+      );
+    }
+
+    final routesRaw = row['routes_json'];
+    if (routesRaw is! String) {
+      throw const FormatException('routes_json must be stored as text.');
+    }
+    final decodedRoutes = jsonDecode(routesRaw);
+    if (decodedRoutes is! List<dynamic>) {
+      throw const FormatException('routes_json must decode to a list.');
+    }
+
+    final routes = decodedRoutes.map((item) {
+      if (item is! Map) {
+        throw const FormatException('Invalid route payload.');
+      }
+      final map = item.map(
+        (key, value) => MapEntry(key.toString(), value),
+      );
+      return RouteSummary(
+        id: _requiredString(map, 'id'),
+        code: _requiredString(map, 'code'),
+        name: _requiredString(map, 'name'),
+      );
+    }).toList(growable: false);
+
+    return PresentationDetail(
+      id: _requiredString(row, 'id'),
+      externalPresentationCode: row['external_presentation_code'] as String?,
+      description: _requiredString(row, 'description'),
+      strengthText: row['strength_text'] as String?,
+      dosageForm: DosageFormSummary(
+        id: _requiredString(row, 'dosage_form_id'),
+        code: _requiredString(row, 'dosage_form_code'),
+        name: _requiredString(row, 'dosage_form_name'),
+      ),
+      routes: routes,
+      concentration: concentration,
+      packageQuantity: _nullableDecimal(row['package_quantity']),
+      packageUnit: row['package_unit'] as String?,
+      calculationReady: calculationReady,
+      regulatoryStatus: row['regulatory_status'] as String?,
+    );
   }
+}
+
+(SearchMatchType, double) _rankMatch(
+  String candidate,
+  String normalizedQuery,
+) {
+  if (candidate == normalizedQuery) {
+    return (SearchMatchType.exact, 1);
+  }
+  if (candidate.startsWith(normalizedQuery)) {
+    return (SearchMatchType.prefix, 0.9);
+  }
+  if (candidate.contains(normalizedQuery)) {
+    return (SearchMatchType.contains, 0.75);
+  }
+  return (SearchMatchType.approximate, 0.5);
+}
+
+String _normalizeSearchTerm(String value) {
+  const replacements = <String, String>{
+    'á': 'a',
+    'à': 'a',
+    'â': 'a',
+    'ã': 'a',
+    'ä': 'a',
+    'é': 'e',
+    'è': 'e',
+    'ê': 'e',
+    'ë': 'e',
+    'í': 'i',
+    'ì': 'i',
+    'î': 'i',
+    'ï': 'i',
+    'ó': 'o',
+    'ò': 'o',
+    'ô': 'o',
+    'õ': 'o',
+    'ö': 'o',
+    'ú': 'u',
+    'ù': 'u',
+    'û': 'u',
+    'ü': 'u',
+    'ç': 'c',
+  };
+
+  final lower = value.toLowerCase().trim();
+  final buffer = StringBuffer();
+  for (final rune in lower.runes) {
+    final character = String.fromCharCode(rune);
+    buffer.write(replacements[character] ?? character);
+  }
+  return buffer.toString().split(RegExp(r'\s+')).join(' ');
+}
+
+double _similarity(String candidate, String query) {
+  if (candidate == query) {
+    return 1;
+  }
+  final longest = candidate.length > query.length ? candidate.length : query.length;
+  if (longest == 0) {
+    return 1;
+  }
+  final distance = _levenshtein(candidate, query);
+  return (longest - distance) / longest;
+}
+
+int _levenshtein(String left, String right) {
+  if (left == right) {
+    return 0;
+  }
+  if (left.isEmpty) {
+    return right.length;
+  }
+  if (right.isEmpty) {
+    return left.length;
+  }
+
+  var previous = List<int>.generate(right.length + 1, (index) => index);
+  for (var i = 0; i < left.length; i++) {
+    final current = List<int>.filled(right.length + 1, 0);
+    current[0] = i + 1;
+    for (var j = 0; j < right.length; j++) {
+      final substitutionCost = left.codeUnitAt(i) == right.codeUnitAt(j) ? 0 : 1;
+      final insertion = current[j] + 1;
+      final deletion = previous[j + 1] + 1;
+      final substitution = previous[j] + substitutionCost;
+      current[j + 1] = <int>[insertion, deletion, substitution].reduce(
+        (first, second) => first < second ? first : second,
+      );
+    }
+    previous = current;
+  }
+  return previous.last;
+}
+
+String _requiredString(Map<String, Object?> row, String field) {
+  final value = row[field];
+  if (value is! String || value.trim().isEmpty) {
+    throw FormatException('$field must be a non-empty string.');
+  }
+  return value.trim();
+}
+
+Decimal? _nullableDecimal(Object? value) {
+  if (value == null) {
+    return null;
+  }
+  return Decimal.parse(value.toString());
 }
