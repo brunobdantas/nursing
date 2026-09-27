@@ -12,7 +12,6 @@ void main() {
   });
 
   test('recent medication persists across repository instances', () async {
-    final preferences = await SharedPreferences.getInstance();
     final firstRepository = SharedPreferencesRecentMedicationRepository();
     final medication = sampleMedicationDetail();
 
@@ -28,7 +27,6 @@ void main() {
   });
 
   test('recording same medication deduplicates history', () async {
-    final preferences = await SharedPreferences.getInstance();
     final repository = SharedPreferencesRecentMedicationRepository();
     final medication = sampleMedicationDetail();
 
