@@ -39,18 +39,16 @@ abstract interface class MedicationRepository {
 
 final class HttpMedicationRepository implements MedicationRepository {
   HttpMedicationRepository({
-    required Uri baseUri,
+    required this.baseUri,
     http.Client? client,
-    Duration timeout = const Duration(seconds: 10),
-  }) : _baseUri = baseUri,
-       _client = client ?? http.Client(),
-       _ownsClient = client == null,
-       _timeout = timeout;
+    this.timeout = const Duration(seconds: 10),
+  }) : _client = client ?? http.Client(),
+       _ownsClient = client == null;
 
-  final Uri _baseUri;
+  final Uri baseUri;
   final http.Client _client;
   final bool _ownsClient;
-  final Duration _timeout;
+  final Duration timeout;
 
   @override
   Future<MedicationSearchResponse> searchMedications(String query) async {
@@ -102,10 +100,10 @@ final class HttpMedicationRepository implements MedicationRepository {
     String path, {
     Map<String, String>? queryParameters,
   }) {
-    final basePath = _baseUri.path.endsWith('/')
-        ? _baseUri.path.substring(0, _baseUri.path.length - 1)
-        : _baseUri.path;
-    return _baseUri.replace(
+    final basePath = baseUri.path.endsWith('/')
+        ? baseUri.path.substring(0, baseUri.path.length - 1)
+        : baseUri.path;
+    return baseUri.replace(
       path: '$basePath$path',
       queryParameters: queryParameters,
     );
@@ -120,7 +118,7 @@ final class HttpMedicationRepository implements MedicationRepository {
               HttpHeaders.acceptHeader: 'application/json',
             },
           )
-          .timeout(_timeout);
+          .timeout(timeout);
 
       if (response.statusCode == 404) {
         throw const MedicationRepositoryException(
