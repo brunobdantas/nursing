@@ -479,3 +479,112 @@ jobs:
           print("EXACT_PDF_PREFIX", repr(text[:1600]))
           PY
           fi
+
+
+      - name: Capture rendered professional leaflet action
+        shell: bash
+        run: |
+          cat > /tmp/capture-rendered-leaflet.mjs <<'JS'
+          import { chromium } from 'playwright';
+
+          const browser = await chromium.launch({
+            headless: true,
+            args: ['--disable-blink-features=AutomationControlled'],
+          });
+          const context = await browser.newContext({
+            userAgent:
+              'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 ' +
+              '(KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
+          });
+          const page = await context.newPage();
+          const events = [];
+          page.on('request', (request) => {
+            if (request.url().includes('/api/consulta/')) {
+              events.push({
+                type: 'request',
+                method: request.method(),
+                url: request.url(),
+              });
+            }
+          });
+          page.on('response', (response) => {
+            if (response.url().includes('/api/consulta/')) {
+              events.push({
+                type: 'response',
+                status: response.status(),
+                url: response.url(),
+              });
+            }
+          });
+
+          await page.goto('https://consultas.anvisa.gov.br/#/bulario/', {
+            waitUntil: 'networkidle',
+            timeout: 120000,
+          });
+          await page.waitForTimeout(3000);
+          await page.locator('#txtNumeroRegistro').fill('103460005');
+
+          const responsePromise = page.waitForResponse(
+            (response) =>
+              response.url().includes('/api/consulta/bulario?') &&
+              response.status() === 200,
+            { timeout: 30000 },
+          );
+          await page.locator('input[type="submit"]').first().click();
+          const searchResponse = await responsePromise;
+          const json = await searchResponse.json();
+          const first = json.content?.[0] ?? null;
+          console.log('UI_RESPONSE_COUNT', json.content?.length ?? 0);
+          if (first) {
+            console.log('UI_RESPONSE_KEYS', Object.keys(first).sort());
+            const safe = { ...first };
+            for (const key of Object.keys(safe)) {
+              if (/codigo|token|jwt|protegido/i.test(key)) {
+                safe[key] = safe[key] ? '<present>' : safe[key];
+              }
+            }
+            console.log('UI_RESPONSE_SAFE', JSON.stringify(safe));
+          }
+
+          await page.waitForTimeout(3000);
+          const rows = page.locator('table tbody tr');
+          console.log('RESULT_ROW_COUNT', await rows.count());
+          if (await rows.count()) {
+            const row = rows.first();
+            console.log('RESULT_ROW_HTML', (await row.innerHTML()).slice(0, 20000));
+            const actions = await row.locator('a,button').evaluateAll((nodes) =>
+              nodes.map((node, index) => ({
+                index,
+                tag: node.tagName,
+                text: (node.textContent ?? '').trim().replace(/\s+/g, ' '),
+                href: node.getAttribute('href'),
+                title: node.getAttribute('title'),
+                ariaLabel: node.getAttribute('aria-label'),
+                ngClick:
+                  node.getAttribute('ng-click') ??
+                  node.getAttribute('data-ng-click'),
+                className: node.getAttribute('class'),
+              })),
+            );
+            console.log('RESULT_ACTIONS', JSON.stringify(actions));
+
+            const cells = row.locator('td');
+            console.log('RESULT_CELL_COUNT', await cells.count());
+            for (let i = 0; i < await cells.count(); i += 1) {
+              const cell = cells.nth(i);
+              console.log(
+                'RESULT_CELL',
+                JSON.stringify({
+                  index: i,
+                  text: (await cell.innerText()).trim(),
+                  html: (await cell.innerHTML()).slice(0, 5000),
+                }),
+              );
+            }
+          }
+
+          console.log('PRE_CLICK_EVENTS', JSON.stringify(events, null, 2));
+          await browser.close();
+          JS
+          cd /tmp
+          node /tmp/capture-rendered-leaflet.mjs
