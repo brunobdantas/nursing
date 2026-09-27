@@ -91,7 +91,11 @@ jobs:
         shell: bash
         run: |
           mkdir -p ../clinical-releases
-          curl --fail --show-error --silent             http://127.0.0.1:8000/v1/sync/content             -o ../clinical-releases/clinical-release-v1.json
+          curl --fail --show-error --silent \
+            http://127.0.0.1:8000/v1/sync/content \
+            -o ../clinical-releases/clinical-release-v1.json
+          gzip -9 -c ../clinical-releases/clinical-release-v1.json \
+            > ../clinical-releases/clinical-release-v1.json.gz
 
       - name: Validate exported release
         working-directory: .
