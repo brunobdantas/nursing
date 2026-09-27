@@ -135,3 +135,99 @@ jobs:
           wc -c /tmp/bula_probe.bin || true
           head -c 32 /tmp/bula_probe.bin | xxd || true
           exit 0
+
+
+      - name: Probe live Bulário API with browser transport
+        shell: bash
+        run: |
+          cd /tmp
+          npm init -y >/dev/null 2>&1
+          npm install playwright@1.57.0 --silent
+          npx playwright install chromium >/dev/null
+          cat > /tmp/probe-bulario.mjs <<'JS'
+          import { chromium } from 'playwright';
+
+          const browser = await chromium.launch({
+            headless: true,
+            args: ['--disable-blink-features=AutomationControlled'],
+          });
+          const context = await browser.newContext({
+            userAgent:
+              'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 ' +
+              '(KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
+          });
+          const page = await context.newPage();
+          await page.goto('https://consultas.anvisa.gov.br/', {
+            waitUntil: 'domcontentloaded',
+            timeout: 120000,
+          });
+          await page.waitForTimeout(5000);
+
+          const search = await page.evaluate(async () => {
+            const url =
+              '/api/consulta/bulario?page=1&count=10&numeroRegistro=103460005';
+            const response = await fetch(url, {
+              headers: { Accept: 'application/json' },
+              credentials: 'include',
+            });
+            return {
+              status: response.status,
+              text: (await response.text()).slice(0, 12000),
+            };
+          });
+          console.log('SEARCH', JSON.stringify(search));
+
+          if (search.status === 200) {
+            const parsed = JSON.parse(search.text);
+            const item = parsed.content?.[0];
+            console.log('FIRST_ITEM', JSON.stringify(item));
+            const process =
+              item?.numeroProcesso ??
+              item?.numProcesso ??
+              item?.processo ??
+              item?.processoProduto;
+            if (process) {
+              const detail = await page.evaluate(async (p) => {
+                const response = await fetch(
+                  '/api/consulta/medicamento/produtos/' + encodeURIComponent(p),
+                  {
+                    headers: { Accept: 'application/json' },
+                    credentials: 'include',
+                  },
+                );
+                return {
+                  status: response.status,
+                  text: (await response.text()).slice(0, 20000),
+                };
+              }, process);
+              console.log('DETAIL', JSON.stringify(detail));
+
+              if (detail.status === 200) {
+                const d = JSON.parse(detail.text);
+                const token =
+                  d.codigoBulaProfissional ?? d.idBulaProfissionalProtegido;
+                console.log('PROF_TOKEN_PRESENT', Boolean(token));
+                if (token) {
+                  const link = await page.evaluate(async (t) => {
+                    const response = await fetch(
+                      '/api/consulta/medicamentos/arquivo/bula/parecer/' +
+                        encodeURIComponent(t) +
+                        '/',
+                      {
+                        headers: { Accept: 'application/json' },
+                        credentials: 'include',
+                      },
+                    );
+                    return {
+                      status: response.status,
+                      text: (await response.text()).slice(0, 8000),
+                    };
+                  }, token);
+                  console.log('PROF_LINK', JSON.stringify(link));
+                }
+              }
+            }
+          }
+          await browser.close();
+          JS
+          node /tmp/probe-bulario.mjs
