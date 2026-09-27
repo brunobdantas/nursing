@@ -1,0 +1,76 @@
+name: Backend Tests
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+      - 'docker-compose.yml'
+      - '.github/workflows/backend_tests.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+      - 'docker-compose.yml'
+      - '.github/workflows/backend_tests.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backend-tests-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend-tests:
+    name: backend-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: nursing
+          POSTGRES_PASSWORD: nursing
+          POSTGRES_DB: nursing_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U nursing -d nursing_test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    defaults:
+      run:
+        working-directory: backend
+
+    env:
+      DATABASE_URL: postgresql+asyncpg://nursing:nursing@localhost:5432/nursing_test
+      PYTHONDONTWRITEBYTECODE: '1'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+          cache: 'pip'
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip && pip install -r requirements.txt
+
+      - name: Validate Python syntax
+        run: python -m compileall -q app scripts tests
+
+      - name: Apply database migrations
+        run: alembic -c alembic.ini upgrade head
+
+      - name: Run API integration tests
+        run: pytest -q

@@ -1,0 +1,19 @@
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: nursing_mvp
+      POSTGRES_USER: nursing_app
+      POSTGRES_PASSWORD: nursing_app_local
+    ports:
+      - "5432:5432"
+    volumes:
+      - nursing_mvp_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nursing_app -d nursing_mvp"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  nursing_mvp_postgres:

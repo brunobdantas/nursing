@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+.env
+*.egg-info/
+.coverage
+htmlcov/
+
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+build/
+coverage/
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Local data / ETL artifacts
+data/raw/
+data/staging/
+*.csv
+*.parquet
+
+# Secrets / certificates
+*.pem
+*.key
+*.p12
+*.pfx

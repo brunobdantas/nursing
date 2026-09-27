@@ -1,0 +1,196 @@
+from __future__ import annotations
+
+from decimal import Decimal
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, MagicMock
+from uuid import uuid4
+
+import pytest
+from fastapi import FastAPI
+from httpx import ASGITransport, AsyncClient
+
+from app.api.router import get_db_session, router
+
+
+class FakeScalarResult:
+    """Minimal SQLAlchemy ScalarResult surface used by the API routes."""
+
+    def __init__(self, values):
+        self._values = list(values)
+
+    def all(self):
+        return list(self._values)
+
+    def unique(self):
+        return self
+
+    def one_or_none(self):
+        if not self._values:
+            return None
+        if len(self._values) > 1:
+            raise AssertionError("Test fixture returned more than one row")
+        return self._values[0]
+
+
+def _app_with_session(session) -> FastAPI:
+    app = FastAPI()
+    app.include_router(router)
+
+    async def override_db_session():
+        yield session
+
+    app.dependency_overrides[get_db_session] = override_db_session
+    return app
+
+
+def _ingredient(name: str = "Dipirona"):
+    return SimpleNamespace(
+        id=uuid4(),
+        canonical_name=name,
+        normalized_name=name.casefold(),
+        atc_code="N02BB02",
+        is_active=True,
+    )
+
+
+def _presentation(*, calculation_ready: bool = True, complete_concentration: bool = True):
+    dosage_form = SimpleNamespace(
+        id=uuid4(),
+        code="SOL_INJ",
+        name="Solução injetável",
+    )
+    route = SimpleNamespace(id=uuid4(), code="IV", name="Intravenosa")
+    route_link = SimpleNamespace(route=route)
+
+    return SimpleNamespace(
+        id=uuid4(),
+        external_presentation_code="ANVISA-PRES-001",
+        description="500 mg/mL - ampola 2 mL",
+        strength_text="500 mg/mL",
+        dosage_form=dosage_form,
+        route_links=[route_link],
+        concentration_value=Decimal("500") if complete_concentration else Decimal("500"),
+        concentration_unit="mg" if complete_concentration else None,
+        concentration_denominator_value=(
+            Decimal("1") if complete_concentration else Decimal("1")
+        ),
+        concentration_denominator_unit="mL" if complete_concentration else None,
+        package_quantity=Decimal("2"),
+        package_unit="mL",
+        calculation_ready=calculation_ready,
+        regulatory_status="VÁLIDO",
+        is_active=True,
+    )
+
+
+def _product(*, presentation=None, ingredient=None):
+    ingredient = ingredient or _ingredient()
+    presentation = presentation or _presentation()
+    ingredient_link = SimpleNamespace(
+        sequence_order=1,
+        active_ingredient=ingredient,
+    )
+    return SimpleNamespace(
+        id=uuid4(),
+        brand_name="Novalgina",
+        normalized_brand_name="novalgina",
+        generic_name="Dipirona",
+        normalized_generic_name="dipirona",
+        anvisa_registration_number="123456789",
+        manufacturer_name="Fabricante Exemplo",
+        regulatory_status="VÁLIDO",
+        country_code="BR",
+        is_active=True,
+        ingredient_links=[ingredient_link],
+        presentations=[presentation],
+    )
+
+
+@pytest.mark.asyncio
+async def test_search_returns_active_ingredients_and_products_contract():
+    ingredient = _ingredient()
+    product = _product(ingredient=ingredient)
+
+    session = MagicMock()
+    session.scalars = AsyncMock(
+        side_effect=[
+            FakeScalarResult([ingredient]),
+            FakeScalarResult([product]),
+        ]
+    )
+    app = _app_with_session(session)
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://test",
+    ) as client:
+        response = await client.get("/v1/medications/search", params={"q": "dip"})
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["query"] == "dip"
+    assert payload["returned"] == 2
+
+    by_type = {item["entity_type"]: item for item in payload["items"]}
+    assert by_type["active_ingredient"]["display_name"] == "Dipirona"
+    assert by_type["medication_product"]["display_name"] == "Novalgina"
+    assert by_type["medication_product"]["secondary_name"] == "Dipirona"
+    assert by_type["medication_product"]["has_calculation_ready_presentation"] is True
+    assert by_type["medication_product"]["is_approximate"] is False
+
+
+@pytest.mark.asyncio
+async def test_medication_detail_returns_structured_concentration_contract():
+    presentation = _presentation(calculation_ready=True, complete_concentration=True)
+    product = _product(presentation=presentation)
+
+    session = MagicMock()
+    session.scalars = AsyncMock(return_value=FakeScalarResult([product]))
+    app = _app_with_session(session)
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://test",
+    ) as client:
+        response = await client.get(f"/v1/medications/{product.id}")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["id"] == str(product.id)
+    assert payload["generic_name"] == "Dipirona"
+    assert payload["active_ingredients"][0]["canonical_name"] == "Dipirona"
+
+    returned_presentation = payload["presentations"][0]
+    assert returned_presentation["calculation_ready"] is True
+    assert returned_presentation["concentration"] == {
+        "numerator_value": "500",
+        "numerator_unit": "mg",
+        "denominator_value": "1",
+        "denominator_unit": "mL",
+    }
+    assert returned_presentation["routes"][0]["code"] == "IV"
+
+
+@pytest.mark.asyncio
+async def test_detail_fails_closed_when_calculation_ready_has_incomplete_concentration():
+    inconsistent = _presentation(
+        calculation_ready=True,
+        complete_concentration=False,
+    )
+    product = _product(presentation=inconsistent)
+
+    session = MagicMock()
+    session.scalars = AsyncMock(return_value=FakeScalarResult([product]))
+    app = _app_with_session(session)
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://test",
+    ) as client:
+        response = await client.get(f"/v1/medications/{product.id}")
+
+    assert response.status_code == 503
+    payload = response.json()
+    assert payload["detail"]["code"] == "CLINICAL_DATA_INTEGRITY_ERROR"
+    assert payload["detail"]["presentation_id"] == str(inconsistent.id)
+    assert "presentations" not in payload

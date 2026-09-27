@@ -1,0 +1,54 @@
+name: Clinical Core Tests
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'mobile/**'
+      - '.github/workflows/clinical_core_tests.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: clinical-core-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  clinical-core-tests:
+    name: clinical-core-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    defaults:
+      run:
+        working-directory: mobile
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Flutter from pubspec
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version-file: mobile/pubspec.yaml
+          cache: true
+
+      - name: Show toolchain versions
+        run: |
+          flutter --version
+          dart --version
+
+      - name: Resolve dependencies
+        run: flutter pub get
+
+      - name: Verify formatting
+        run: dart format --output=none --set-exit-if-changed lib test
+
+      - name: Static analysis
+        run: flutter analyze --fatal-infos --fatal-warnings
+
+      - name: Run clinical calculation tests
+        run: flutter test test/calculation_core_test.dart --reporter expanded

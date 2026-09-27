@@ -1,0 +1,33 @@
+name: Bug report
+description: Reporte um defeito funcional ou técnico.
+title: "[BUG] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Descrição
+      description: O que aconteceu?
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Comportamento esperado
+    validations:
+      required: true
+  - type: dropdown
+    id: clinical
+    attributes:
+      label: Há potencial impacto clínico?
+      options:
+        - "Não"
+        - "Sim"
+        - "Não sei"
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidências
+      description: Logs sem dados de paciente, screenshots ou passos para reprodução.
