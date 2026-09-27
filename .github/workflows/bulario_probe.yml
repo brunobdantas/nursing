@@ -121,3 +121,17 @@ jobs:
           grep -m 5 '8483662026' /tmp/bula_documento.csv || true
           echo "Matches for process 250000031219551:"
           grep -m 5 '250000031219551' /tmp/bula_documento.csv || true
+
+
+      - name: Probe Bulário document download endpoint
+        shell: bash
+        run: |
+          set +e
+          curl --show-error --location --retry 2             -D /tmp/bula_headers.txt             https://consultas.anvisa.gov.br/api/consulta/downloadPDF/35239160             -o /tmp/bula_probe.bin
+          status=$?
+          echo "curl_status=$status"
+          cat /tmp/bula_headers.txt || true
+          file /tmp/bula_probe.bin || true
+          wc -c /tmp/bula_probe.bin || true
+          head -c 32 /tmp/bula_probe.bin | xxd || true
+          exit 0
