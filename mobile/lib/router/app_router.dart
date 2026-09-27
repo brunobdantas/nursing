@@ -1,8 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../core/network/api_config.dart';
+import '../features/calculator/presentation/calculator_screen.dart';
 import '../features/home/presentation/home_screen.dart';
+import '../features/medication/data/medication_repository.dart';
+import '../features/medication/presentation/medication_detail_screen.dart';
 import '../features/search/presentation/search_screen.dart';
+
+final HttpMedicationRepository medicationRepository =
+    HttpMedicationRepository(baseUri: ApiConfig.baseUri);
 
 final GoRouter appRouter = GoRouter(
   initialLocation: '/',
@@ -15,7 +22,47 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/search',
       name: 'search',
-      builder: (context, state) => const SearchScreen(),
+      builder: (context, state) => SearchScreen(
+        repository: medicationRepository,
+      ),
+    ),
+    GoRoute(
+      path: '/medications/:medicationId',
+      name: 'medication-detail',
+      builder: (context, state) {
+        final medicationId = state.pathParameters['medicationId'];
+        if (medicationId == null || medicationId.isEmpty) {
+          return const _InvalidRouteScreen();
+        }
+
+        return MedicationDetailScreen(
+          medicationId: medicationId,
+          repository: medicationRepository,
+          startCalculationFlow:
+              state.uri.queryParameters['calculate'] == 'true',
+        );
+      },
+    ),
+    GoRoute(
+      path:
+          '/medications/:medicationId/calculator/:presentationId',
+      name: 'medication-calculator',
+      builder: (context, state) {
+        final medicationId = state.pathParameters['medicationId'];
+        final presentationId = state.pathParameters['presentationId'];
+        if (medicationId == null ||
+            medicationId.isEmpty ||
+            presentationId == null ||
+            presentationId.isEmpty) {
+          return const _InvalidRouteScreen();
+        }
+
+        return CalculatorScreen(
+          medicationId: medicationId,
+          presentationId: presentationId,
+          repository: medicationRepository,
+        );
+      },
     ),
     GoRoute(
       path: '/calculators/:calculator',
@@ -49,7 +96,28 @@ class _CalculatorPlaceholderScreen extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Text(
-            '$title será conectado ao Calculation Core em um próximo ciclo.',
+            '$title será conectado a uma jornada independente '
+            'em um próximo ciclo.',
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _InvalidRouteScreen extends StatelessWidget {
+  const _InvalidRouteScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Nursing')),
+      body: const Center(
+        child: Padding(
+          padding: EdgeInsets.all(24),
+          child: Text(
+            'Não foi possível abrir este conteúdo com segurança.',
             textAlign: TextAlign.center,
           ),
         ),
