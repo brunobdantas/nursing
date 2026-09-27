@@ -211,8 +211,8 @@ class ActiveIngredient(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         {"schema": "canonical"},
     )
 
-    canonical_name: Mapped[str] = mapped_column(String(255), nullable=False)
-    normalized_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    canonical_name: Mapped[str] = mapped_column(String(1000), nullable=False)
+    normalized_name: Mapped[str] = mapped_column(String(1000), nullable=False)
     atc_code: Mapped[str | None] = mapped_column(String(20), index=True)
     cas_number: Mapped[str | None] = mapped_column(String(32), index=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)

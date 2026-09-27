@@ -155,3 +155,89 @@ async def test_entity_resolution_promotes_anvisa_data_and_keeps_calculation_clos
                 await transaction.rollback()
     finally:
         await engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_entity_resolution_preserves_long_anvisa_combination_names() -> None:
+    database_url = os.environ["DATABASE_URL"]
+    engine = create_async_engine(database_url)
+    session_factory = async_sessionmaker(engine, expire_on_commit=False)
+
+    suffix = uuid.uuid4().hex[:10]
+    registration = f"LONG-{suffix}"
+    long_ingredient = ", ".join(
+        f"substância clínica {index:02d}" for index in range(1, 22)
+    )
+    assert len(long_ingredient) > 255
+
+    try:
+        async with session_factory() as session:
+            transaction = await session.begin()
+            try:
+                source = await session.scalar(
+                    select(SourceSystem).where(SourceSystem.code == "ANVISA")
+                )
+                if source is None:
+                    source = SourceSystem(
+                        id=uuid.uuid4(),
+                        code="ANVISA",
+                        name="Agência Nacional de Vigilância Sanitária",
+                        country_code="BR",
+                        authority_level=100,
+                        is_active=True,
+                    )
+                    session.add(source)
+                    await session.flush()
+
+                snapshot = SourceSnapshot(
+                    id=uuid.uuid4(),
+                    source_system_id=source.id,
+                    dataset_name="DADOS_ABERTOS_MEDICAMENTOS.csv",
+                    source_version=f"long-{suffix}",
+                    retrieved_at=datetime.now(timezone.utc),
+                    checksum_sha256=(suffix * 7)[:64].ljust(64, "2"),
+                    raw_object_uri=f"file:///tmp/long-{suffix}.csv",
+                    etl_version="test",
+                    schema_version="test",
+                    snapshot_metadata={"row_count": 1},
+                )
+                session.add(snapshot)
+                await session.flush()
+
+                assertion = SourceAssertion(
+                    id=uuid.uuid4(),
+                    source_snapshot_id=snapshot.id,
+                    external_record_id=f"reg:{registration}",
+                    entity_type="anvisa_medication_record",
+                    entity_key={"registration_number": registration},
+                    attribute_name="record",
+                    value_text=f"Produto Longo — {long_ingredient}",
+                    value_json={
+                        "raw": {},
+                        "normalized": {
+                            "NUMERO_REGISTRO_PRODUTO": registration,
+                            "NOME_PRODUTO": "Produto Longo",
+                            "PRINCIPIO_ATIVO": long_ingredient,
+                            "SITUACAO_REGISTRO": "VÁLIDO",
+                        },
+                    },
+                    language_code="pt-BR",
+                    content_hash=(suffix * 7)[:64].ljust(64, "3"),
+                )
+                session.add(assertion)
+                await session.flush()
+
+                summary = await resolve_entities(session, snapshot_id=snapshot.id)
+
+                assert summary.active_ingredients == 1
+                stored = await session.scalar(
+                    select(ActiveIngredient).where(
+                        ActiveIngredient.normalized_name == normalize_name(long_ingredient)
+                    )
+                )
+                assert stored is not None
+                assert stored.canonical_name == long_ingredient
+            finally:
+                await transaction.rollback()
+    finally:
+        await engine.dispose()
