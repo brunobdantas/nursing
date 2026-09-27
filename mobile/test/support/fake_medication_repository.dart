@@ -73,6 +73,9 @@ MedicationDetailResponse sampleMedicationDetail() {
     anvisaRegistrationNumber: '123456789',
     manufacturerName: 'Fabricante Teste',
     regulatoryStatus: 'VÁLIDO',
+    therapeuticClass: 'Analgésicos e antipiréticos',
+    productType: 'Referência',
+    professionalLeafletUrl: 'https://example.test/bula',
     activeIngredients: const <ActiveIngredientSummary>[
       ActiveIngredientSummary(
         id: '22222222-2222-2222-2222-222222222222',
