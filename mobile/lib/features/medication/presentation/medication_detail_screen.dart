@@ -521,7 +521,6 @@ class _OfficialLeafletSection extends StatelessWidget {
   }
 }
 
-
 class _PresentationCard extends StatelessWidget {
   const _PresentationCard({
     required this.presentation,

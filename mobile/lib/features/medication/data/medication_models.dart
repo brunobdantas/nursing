@@ -321,9 +321,7 @@ final class MedicationDetailResponse {
       regulatoryStatus: _nullableString(json['regulatory_status']),
       therapeuticClass: _nullableString(json['therapeutic_class']),
       productType: _nullableString(json['product_type']),
-      professionalLeafletUrl: _nullableString(
-        json['professional_leaflet_url'],
-      ),
+      professionalLeafletUrl: _nullableString(json['professional_leaflet_url']),
       activeIngredients: rawIngredients
           .map(
             (item) => ActiveIngredientSummary.fromJson(
