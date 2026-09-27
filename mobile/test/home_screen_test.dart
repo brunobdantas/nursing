@@ -34,7 +34,6 @@ void main() {
     expect(find.text('Buscar medicamento ou princípio ativo'), findsOneWidget);
     expect(find.text('Calculadoras'), findsOneWidget);
     expect(find.text('Favoritos'), findsOneWidget);
-    expect(find.text('Recentes'), findsOneWidget);
 
     final searchSize = tester.getSize(find.byKey(HomeScreen.searchKey));
     expect(searchSize.height, greaterThanOrEqualTo(48));
@@ -50,6 +49,10 @@ void main() {
     final dropsSize = tester.getSize(find.byKey(HomeScreen.dropsActionKey));
     expect(dropsSize.height, greaterThanOrEqualTo(48));
 
+    await tester.drag(find.byType(ListView), const Offset(0, -700));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Recentes'), findsOneWidget);
     expect(
       find.text('Base clínica atualizada e disponível offline'),
       findsOneWidget,
@@ -132,6 +135,8 @@ void main() {
         ),
       ),
     );
+    await tester.pumpAndSettle();
+    await tester.drag(find.byType(ListView), const Offset(0, -850));
     await tester.pumpAndSettle();
 
     expect(
