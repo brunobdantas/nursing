@@ -732,3 +732,60 @@ jobs:
           print("TOKEN_PDF_PREFIX", repr(text[:1800]))
           PY
           fi
+
+
+      - name: Capture Bulário request headers
+        shell: bash
+        run: |
+          cat > /tmp/capture-bulario-headers.mjs <<'JS'
+          import { chromium } from 'playwright';
+
+          const browser = await chromium.launch({
+            headless: true,
+            args: ['--disable-blink-features=AutomationControlled'],
+          });
+          const context = await browser.newContext({
+            userAgent:
+              'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 ' +
+              '(KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
+          });
+          const page = await context.newPage();
+          let captured = null;
+          page.on('request', async (request) => {
+            if (
+              !captured &&
+              request.url().includes('/api/consulta/bulario?')
+            ) {
+              captured = {
+                url: request.url(),
+                method: request.method(),
+                headers: await request.allHeaders(),
+              };
+            }
+          });
+          await page.goto('https://consultas.anvisa.gov.br/#/bulario/', {
+            waitUntil: 'networkidle',
+            timeout: 120000,
+          });
+          await page.waitForTimeout(2500);
+          await page.locator('#txtNumeroRegistro').fill('103460005');
+          const responsePromise = page.waitForResponse(
+            (response) =>
+              response.url().includes('/api/consulta/bulario?') &&
+              response.status() === 200,
+            { timeout: 30000 },
+          );
+          await page.locator('input[type="submit"]').first().click();
+          await responsePromise;
+          const safeHeaders = { ...(captured?.headers ?? {}) };
+          delete safeHeaders.cookie;
+          delete safeHeaders.authorization;
+          console.log('UI_REQUEST_CONTRACT', JSON.stringify({
+            url: captured?.url,
+            method: captured?.method,
+            headers: safeHeaders,
+          }, null, 2));
+          await browser.close();
+          JS
+          cd /tmp
+          node /tmp/capture-bulario-headers.mjs
