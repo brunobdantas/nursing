@@ -70,6 +70,9 @@ jobs:
       - name: Resolve canonical medication entities
         run: python scripts/entity_resolution.py
 
+      - name: Enrich commercial presentations from CMED
+        run: python scripts/cmed_enrichment.py
+
       - name: Curate safe structured concentrations
         run: python scripts/clinical_curation.py
 
@@ -116,6 +119,11 @@ jobs:
           assert data["content_version"].startswith("clinical-release-v1-")
           assert len(data["active_ingredients"]) > 0
           assert len(data["medications"]) > 0
+          assert len(data["presentations"]) > 0
+          assert all(
+              item.get("regulatory_status", "").casefold() != "inativo"
+              for item in data["medications"]
+          )
           print(
               "release:",
               data["content_version"],
