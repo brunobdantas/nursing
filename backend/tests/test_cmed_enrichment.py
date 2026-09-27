@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from app.db.models import MedicationProduct, Presentation
 from scripts.clinical_curation import curate_presentations
 from scripts.cmed_enrichment import (
+    _latest_xlsx_url,
     enrich_cmed,
     infer_dosage_form,
     infer_route,
@@ -51,6 +52,17 @@ def _workbook_bytes() -> bytes:
     output = io.BytesIO()
     workbook.save(output)
     return output.getvalue()
+
+
+def test_cmed_portal_download_link_accepts_download_suffix() -> None:
+    page = (
+        '<a href="./arquivos/xls_conformidade_site_20260909_222937320.xlsx/'
+        '@@download/file">PMC - xls</a>'
+    )
+
+    assert _latest_xlsx_url(page).endswith(
+        "xls_conformidade_site_20260909_222937320.xlsx/@@download/file"
+    )
 
 
 def test_cmed_workbook_header_detection_and_normalization() -> None:
