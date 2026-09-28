@@ -476,17 +476,17 @@ class _QuizzesScreenState extends State<QuizzesScreen> {
           for (var i = 0; i < question.options.length; i++)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
-              child: RadioListTile<int>(
-                value: i,
-                groupValue: _selected,
-                onChanged: _selected == null
-                    ? (value) {
-                        if (value != null) {
-                          _select(value);
-                        }
-                      }
-                    : null,
-                title: Text(question.options[i]),
+              child: Card(
+                margin: EdgeInsets.zero,
+                child: ListTile(
+                  onTap: _selected == null ? () => _select(i) : null,
+                  leading: Icon(
+                    _selected == i
+                        ? Icons.radio_button_checked_rounded
+                        : Icons.radio_button_unchecked_rounded,
+                  ),
+                  title: Text(question.options[i]),
+                ),
               ),
             ),
           if (_selected != null) ...[
