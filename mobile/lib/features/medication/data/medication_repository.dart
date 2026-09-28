@@ -180,6 +180,8 @@ final class LocalMedicationRepository implements MedicationRepository {
           .toList(growable: false);
       final incompatibilityRows = await database
           .incompatibilitiesForIngredientIds(ingredientIds);
+      final professionalLeafletRows = await database
+          .professionalLeafletsForMedication(normalizedId);
 
       final ingredients = ingredientRows
           .map(
@@ -236,6 +238,10 @@ final class LocalMedicationRepository implements MedicationRepository {
         growable: false,
       );
 
+      final professionalLeaflets = professionalLeafletRows
+          .map(_professionalLeafletFromRow)
+          .toList(growable: false);
+
       return MedicationDetailResponse(
         id: _requiredString(medication, 'id'),
         brandName: medication['brand_name'] as String?,
@@ -252,6 +258,7 @@ final class LocalMedicationRepository implements MedicationRepository {
         presentations: presentations,
         administrationGuidance: administrationGuidance,
         incompatibilities: incompatibilities,
+        professionalLeaflets: professionalLeaflets,
       );
     } on MedicationRepositoryException {
       rethrow;
@@ -382,6 +389,35 @@ final class LocalMedicationRepository implements MedicationRepository {
       clinicalVersion: row['clinical_version'] as String?,
       sourceName: row['source_name'] as String?,
       sourceUrl: row['source_url'] as String?,
+    );
+  }
+
+  ProfessionalLeafletDetail _professionalLeafletFromRow(
+    Map<String, Object?> row,
+  ) {
+    return ProfessionalLeafletDetail(
+      id: _requiredString(row, 'id'),
+      sourceName: _requiredString(row, 'source_name'),
+      sourceDocumentId: _requiredString(row, 'source_document_id'),
+      sourceVersion: _requiredString(row, 'source_version'),
+      sourceLanguage: _requiredString(row, 'source_language'),
+      sourceUrl: _requiredString(row, 'source_url'),
+      sourceEffectiveDate: row['source_effective_date'] as String?,
+      indicationsText: row['indications_text'] as String?,
+      dosageAdministrationText: row['dosage_administration_text'] as String?,
+      contraindicationsText: row['contraindications_text'] as String?,
+      warningsPrecautionsText: row['warnings_precautions_text'] as String?,
+      adverseReactionsText: row['adverse_reactions_text'] as String?,
+      drugInteractionsText: row['drug_interactions_text'] as String?,
+      specificPopulationsText: row['specific_populations_text'] as String?,
+      overdosageText: row['overdosage_text'] as String?,
+      descriptionText: row['description_text'] as String?,
+      clinicalPharmacologyText: row['clinical_pharmacology_text'] as String?,
+      howSuppliedStorageText: row['how_supplied_storage_text'] as String?,
+      patientCounselingText: row['patient_counseling_text'] as String?,
+      reviewStatus: _requiredString(row, 'review_status'),
+      relationType: _requiredString(row, 'relation_type'),
+      clinicalVersion: row['clinical_version'] as String?,
     );
   }
 
