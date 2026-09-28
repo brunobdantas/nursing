@@ -431,7 +431,11 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/calculators/infusion',
       name: 'infusion-calculator',
-      builder: (context, state) => const InfusionCalculatorScreen(),
+      builder: (context, state) => InfusionCalculatorScreen(
+        initialVolumeMl: state.uri.queryParameters['volumeMl'],
+        initialDurationMinutes: state.uri.queryParameters['durationMinutes'],
+        contextLabel: state.uri.queryParameters['context'],
+      ),
     ),
     GoRoute(
       path: '/calculators/drip',
