@@ -9,7 +9,7 @@ final class ClinicalDatabase {
   ClinicalDatabase({DatabaseFactory? factory, this.databasePath})
     : _factory = factory ?? databaseFactory;
 
-  static const int schemaVersion = 3;
+  static const int schemaVersion = 4;
   static const String defaultFileName = 'nursing_clinical_v1.db';
   static const String contentVersionKey = 'clinical_content_version';
   static const String lastSyncAtKey = 'clinical_last_sync_at';
@@ -144,6 +144,7 @@ final class ClinicalDatabase {
       )
     ''');
 
+    await _createAdministrationTables(db);
     await _ensureSearchIndexes(db);
   }
 
@@ -167,6 +168,66 @@ final class ClinicalDatabase {
       await _ensureSearchIndexes(db);
       await _rebuildSearchIndexes(db);
     }
+    if (oldVersion < 4) {
+      await _createAdministrationTables(db);
+    }
+  }
+
+  Future<void> _createAdministrationTables(DatabaseExecutor db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS administration_guidance (
+        id TEXT PRIMARY KEY,
+        medication_product_id TEXT NOT NULL,
+        presentation_id TEXT NOT NULL,
+        route_id TEXT NOT NULL,
+        route_code TEXT NOT NULL,
+        route_name TEXT NOT NULL,
+        administration_method TEXT,
+        diluent_name TEXT,
+        diluent_volume_value TEXT,
+        diluent_volume_unit TEXT,
+        resulting_total_volume_value TEXT,
+        resulting_total_volume_unit TEXT,
+        administration_time_min_minutes TEXT,
+        administration_time_max_minutes TEXT,
+        instruction_text TEXT NOT NULL,
+        review_status TEXT NOT NULL,
+        clinical_version TEXT,
+        source_name TEXT,
+        source_url TEXT,
+        calculator_formula_id TEXT,
+        calculator_volume_ml TEXT,
+        calculator_duration_minutes TEXT
+      )
+    ''');
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS ix_local_admin_medication '
+      'ON administration_guidance(medication_product_id)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS ix_local_admin_presentation '
+      'ON administration_guidance(presentation_id)',
+    );
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS incompatibility (
+        id TEXT PRIMARY KEY,
+        active_ingredient_id TEXT NOT NULL,
+        incompatible_ingredient_id TEXT NOT NULL,
+        incompatible_ingredient_name TEXT NOT NULL,
+        interaction_type TEXT NOT NULL,
+        severity TEXT NOT NULL,
+        description TEXT NOT NULL,
+        review_status TEXT NOT NULL,
+        clinical_version TEXT,
+        source_name TEXT,
+        source_url TEXT
+      )
+    ''');
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS ix_local_incompatibility_source '
+      'ON incompatibility(active_ingredient_id)',
+    );
   }
 
   Future<void> _ensureSearchIndexes(DatabaseExecutor db) async {
@@ -273,6 +334,8 @@ final class ClinicalDatabase {
   Future<void> replaceClinicalRelease(ClinicalSyncRelease release) async {
     final db = await database;
     await db.transaction((txn) async {
+      await txn.delete('administration_guidance');
+      await txn.delete('incompatibility');
       await txn.delete('medication_product_ingredient');
       await txn.delete('presentation');
       await txn.delete('medication_product');
@@ -359,6 +422,63 @@ final class ClinicalDatabase {
         }, conflictAlgorithm: ConflictAlgorithm.abort);
       }
       await presentationBatch.commit(noResult: true);
+
+      final guidanceBatch = txn.batch();
+      for (final guidance in release.administrationGuidance) {
+        guidanceBatch.insert(
+          'administration_guidance',
+          <String, Object?>{
+            'id': guidance.id,
+            'medication_product_id': guidance.medicationProductId,
+            'presentation_id': guidance.presentationId,
+            'route_id': guidance.route.id,
+            'route_code': guidance.route.code,
+            'route_name': guidance.route.name,
+            'administration_method': guidance.administrationMethod,
+            'diluent_name': guidance.diluentName,
+            'diluent_volume_value': guidance.diluentVolumeValue,
+            'diluent_volume_unit': guidance.diluentVolumeUnit,
+            'resulting_total_volume_value': guidance.resultingTotalVolumeValue,
+            'resulting_total_volume_unit': guidance.resultingTotalVolumeUnit,
+            'administration_time_min_minutes':
+                guidance.administrationTimeMinMinutes,
+            'administration_time_max_minutes':
+                guidance.administrationTimeMaxMinutes,
+            'instruction_text': guidance.instructionText,
+            'review_status': guidance.reviewStatus,
+            'clinical_version': guidance.clinicalVersion,
+            'source_name': guidance.sourceName,
+            'source_url': guidance.sourceUrl,
+            'calculator_formula_id': guidance.calculatorFormulaId,
+            'calculator_volume_ml': guidance.calculatorVolumeMl,
+            'calculator_duration_minutes': guidance.calculatorDurationMinutes,
+          },
+          conflictAlgorithm: ConflictAlgorithm.abort,
+        );
+      }
+      await guidanceBatch.commit(noResult: true);
+
+      final incompatibilityBatch = txn.batch();
+      for (final item in release.incompatibilities) {
+        incompatibilityBatch.insert(
+          'incompatibility',
+          <String, Object?>{
+            'id': item.id,
+            'active_ingredient_id': item.activeIngredientId,
+            'incompatible_ingredient_id': item.incompatibleIngredientId,
+            'incompatible_ingredient_name': item.incompatibleIngredientName,
+            'interaction_type': item.interactionType,
+            'severity': item.severity,
+            'description': item.description,
+            'review_status': item.reviewStatus,
+            'clinical_version': item.clinicalVersion,
+            'source_name': item.sourceName,
+            'source_url': item.sourceUrl,
+          },
+          conflictAlgorithm: ConflictAlgorithm.abort,
+        );
+      }
+      await incompatibilityBatch.commit(noResult: true);
 
       await _rebuildSearchIndexes(txn);
 
@@ -569,6 +689,37 @@ final class ClinicalDatabase {
       where: 'medication_product_id = ?',
       whereArgs: <Object>[id],
       orderBy: 'description COLLATE NOCASE ASC',
+    );
+  }
+
+  Future<List<Map<String, Object?>>> administrationGuidanceForMedication(
+    String medicationId,
+  ) async {
+    final db = await database;
+    return db.query(
+      'administration_guidance',
+      where: 'medication_product_id = ?',
+      whereArgs: <Object>[medicationId],
+      orderBy: 'presentation_id ASC, id ASC',
+    );
+  }
+
+  Future<List<Map<String, Object?>>> incompatibilitiesForIngredientIds(
+    List<String> ingredientIds,
+  ) async {
+    if (ingredientIds.isEmpty) {
+      return const <Map<String, Object?>>[];
+    }
+    final db = await database;
+    final placeholders = List<String>.filled(
+      ingredientIds.length,
+      '?',
+    ).join(',');
+    return db.rawQuery(
+      'SELECT * FROM incompatibility '
+      'WHERE active_ingredient_id IN ($placeholders) '
+      'ORDER BY severity ASC, incompatible_ingredient_name COLLATE NOCASE ASC',
+      ingredientIds,
     );
   }
 
