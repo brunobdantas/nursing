@@ -72,10 +72,14 @@ jobs:
           assert len(data["active_ingredients"]) > 0
           assert len(data["medications"]) > 0
           assert len(data["presentations"]) > 0
+          assert len(data.get("professional_leaflets", [])) > 0
+          assert len(data.get("medication_leaflet_links", [])) > 0
           print(
               data["content_version"],
               "medications=", len(data["medications"]),
               "presentations=", len(data["presentations"]),
+              "leaflets=", len(data["professional_leaflets"]),
+              "leaflet_links=", len(data["medication_leaflet_links"]),
           )
           PY
 
