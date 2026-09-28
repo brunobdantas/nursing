@@ -1,4 +1,4 @@
-name: Format Leaflet Integration
+name: Format Clinical Workspace
 
 on:
   push:
@@ -23,19 +23,19 @@ jobs:
           flutter-version: '3.47.5'
           cache: true
 
-      - name: Format updated Dart files
-        run: |
-          dart format             mobile/lib/features/medication/presentation/medication_detail_screen.dart             mobile/lib/features/medication/presentation/professional_leaflet_screen.dart
+      - name: Format Flutter sources
+        working-directory: mobile
+        run: dart format lib test
 
       - name: Commit formatter output when needed
         shell: bash
         run: |
-          if git diff --quiet --             mobile/lib/features/medication/presentation/medication_detail_screen.dart             mobile/lib/features/medication/presentation/professional_leaflet_screen.dart; then
+          if git diff --quiet -- mobile/lib mobile/test; then
             echo "No formatting changes."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add             mobile/lib/features/medication/presentation/medication_detail_screen.dart             mobile/lib/features/medication/presentation/professional_leaflet_screen.dart
-          git commit -m "style: format in-app leaflet integration"
+          git add mobile/lib mobile/test
+          git commit -m "style: format clinical workspace"
           git push origin HEAD:main
