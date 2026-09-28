@@ -110,6 +110,154 @@ final class SyncPresentationRecord {
   final PresentationDetail presentation;
 }
 
+final class SyncAdministrationGuidanceRecord {
+  const SyncAdministrationGuidanceRecord({
+    required this.id,
+    required this.medicationProductId,
+    required this.presentationId,
+    required this.route,
+    required this.instructionText,
+    required this.reviewStatus,
+    this.administrationMethod,
+    this.diluentName,
+    this.diluentVolumeValue,
+    this.diluentVolumeUnit,
+    this.resultingTotalVolumeValue,
+    this.resultingTotalVolumeUnit,
+    this.administrationTimeMinMinutes,
+    this.administrationTimeMaxMinutes,
+    this.clinicalVersion,
+    this.sourceName,
+    this.sourceUrl,
+    this.calculatorFormulaId,
+    this.calculatorVolumeMl,
+    this.calculatorDurationMinutes,
+  });
+
+  factory SyncAdministrationGuidanceRecord.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    return SyncAdministrationGuidanceRecord(
+      id: _requiredString(json['id'], 'id'),
+      medicationProductId: _requiredString(
+        json['medication_product_id'],
+        'medication_product_id',
+      ),
+      presentationId: _requiredString(
+        json['presentation_id'],
+        'presentation_id',
+      ),
+      route: RouteSummary.fromJson(_requiredMap(json['route'], 'route')),
+      administrationMethod: _nullableString(json['administration_method']),
+      diluentName: _nullableString(json['diluent_name']),
+      diluentVolumeValue: _nullableScalarString(json['diluent_volume_value']),
+      diluentVolumeUnit: _nullableString(json['diluent_volume_unit']),
+      resultingTotalVolumeValue: _nullableScalarString(
+        json['resulting_total_volume_value'],
+      ),
+      resultingTotalVolumeUnit: _nullableString(
+        json['resulting_total_volume_unit'],
+      ),
+      administrationTimeMinMinutes: _nullableScalarString(
+        json['administration_time_min_minutes'],
+      ),
+      administrationTimeMaxMinutes: _nullableScalarString(
+        json['administration_time_max_minutes'],
+      ),
+      instructionText: _requiredString(
+        json['instruction_text'],
+        'instruction_text',
+      ),
+      reviewStatus: _requiredString(json['review_status'], 'review_status'),
+      clinicalVersion: _nullableString(json['clinical_version']),
+      sourceName: _nullableString(json['source_name']),
+      sourceUrl: _nullableString(json['source_url']),
+      calculatorFormulaId: _nullableString(json['calculator_formula_id']),
+      calculatorVolumeMl: _nullableScalarString(json['calculator_volume_ml']),
+      calculatorDurationMinutes: _nullableScalarString(
+        json['calculator_duration_minutes'],
+      ),
+    );
+  }
+
+  final String id;
+  final String medicationProductId;
+  final String presentationId;
+  final RouteSummary route;
+  final String? administrationMethod;
+  final String? diluentName;
+  final String? diluentVolumeValue;
+  final String? diluentVolumeUnit;
+  final String? resultingTotalVolumeValue;
+  final String? resultingTotalVolumeUnit;
+  final String? administrationTimeMinMinutes;
+  final String? administrationTimeMaxMinutes;
+  final String instructionText;
+  final String reviewStatus;
+  final String? clinicalVersion;
+  final String? sourceName;
+  final String? sourceUrl;
+  final String? calculatorFormulaId;
+  final String? calculatorVolumeMl;
+  final String? calculatorDurationMinutes;
+}
+
+final class SyncIncompatibilityRecord {
+  const SyncIncompatibilityRecord({
+    required this.id,
+    required this.activeIngredientId,
+    required this.incompatibleIngredientId,
+    required this.incompatibleIngredientName,
+    required this.interactionType,
+    required this.severity,
+    required this.description,
+    required this.reviewStatus,
+    this.clinicalVersion,
+    this.sourceName,
+    this.sourceUrl,
+  });
+
+  factory SyncIncompatibilityRecord.fromJson(Map<String, dynamic> json) {
+    return SyncIncompatibilityRecord(
+      id: _requiredString(json['id'], 'id'),
+      activeIngredientId: _requiredString(
+        json['active_ingredient_id'],
+        'active_ingredient_id',
+      ),
+      incompatibleIngredientId: _requiredString(
+        json['incompatible_ingredient_id'],
+        'incompatible_ingredient_id',
+      ),
+      incompatibleIngredientName: _requiredString(
+        json['incompatible_ingredient_name'],
+        'incompatible_ingredient_name',
+      ),
+      interactionType: _requiredString(
+        json['interaction_type'],
+        'interaction_type',
+      ),
+      severity: _requiredString(json['severity'], 'severity'),
+      description: _requiredString(json['description'], 'description'),
+      reviewStatus: _requiredString(json['review_status'], 'review_status'),
+      clinicalVersion: _nullableString(json['clinical_version']),
+      sourceName: _nullableString(json['source_name']),
+      sourceUrl: _nullableString(json['source_url']),
+    );
+  }
+
+  final String id;
+  final String activeIngredientId;
+  final String incompatibleIngredientId;
+  final String incompatibleIngredientName;
+  final String interactionType;
+  final String severity;
+  final String description;
+  final String reviewStatus;
+  final String? clinicalVersion;
+  final String? sourceName;
+  final String? sourceUrl;
+}
+
 final class ClinicalSyncRelease {
   const ClinicalSyncRelease({
     required this.releaseSchema,
@@ -118,6 +266,8 @@ final class ClinicalSyncRelease {
     required this.activeIngredients,
     required this.medications,
     required this.presentations,
+    required this.administrationGuidance,
+    required this.incompatibilities,
   });
 
   factory ClinicalSyncRelease.fromJson(Map<String, dynamic> json) {
@@ -151,9 +301,15 @@ final class ClinicalSyncRelease {
     final rawIngredients = json['active_ingredients'];
     final rawMedications = json['medications'];
     final rawPresentations = json['presentations'];
+    final rawAdministrationGuidance =
+        json['administration_guidance'] ?? const <dynamic>[];
+    final rawIncompatibilities =
+        json['incompatibilities'] ?? const <dynamic>[];
     if (rawIngredients is! List<dynamic> ||
         rawMedications is! List<dynamic> ||
-        rawPresentations is! List<dynamic>) {
+        rawPresentations is! List<dynamic> ||
+        rawAdministrationGuidance is! List<dynamic> ||
+        rawIncompatibilities is! List<dynamic>) {
       throw const FormatException(
         'Clinical release collections must be lists.',
       );
@@ -180,6 +336,20 @@ final class ClinicalSyncRelease {
           ),
         )
         .toList(growable: false);
+    final administrationGuidance = rawAdministrationGuidance
+        .map(
+          (item) => SyncAdministrationGuidanceRecord.fromJson(
+            _requiredMap(item, 'administration_guidance[]'),
+          ),
+        )
+        .toList(growable: false);
+    final incompatibilities = rawIncompatibilities
+        .map(
+          (item) => SyncIncompatibilityRecord.fromJson(
+            _requiredMap(item, 'incompatibilities[]'),
+          ),
+        )
+        .toList(growable: false);
 
     final medicationIds = medications.map((item) => item.id).toSet();
     final ingredientIds = activeIngredients.map((item) => item.id).toSet();
@@ -192,10 +362,29 @@ final class ClinicalSyncRelease {
       }
     }
 
+    final presentationIds = presentations.map((item) => item.presentation.id).toSet();
     for (final presentation in presentations) {
       if (!medicationIds.contains(presentation.medicationProductId)) {
         throw const FormatException(
           'Presentation references unknown medication.',
+        );
+      }
+    }
+
+    for (final guidance in administrationGuidance) {
+      if (!medicationIds.contains(guidance.medicationProductId) ||
+          !presentationIds.contains(guidance.presentationId)) {
+        throw const FormatException(
+          'Administration guidance references unknown clinical content.',
+        );
+      }
+    }
+
+    for (final incompatibility in incompatibilities) {
+      if (!ingredientIds.contains(incompatibility.activeIngredientId) ||
+          !ingredientIds.contains(incompatibility.incompatibleIngredientId)) {
+        throw const FormatException(
+          'Incompatibility references unknown active ingredient.',
         );
       }
     }
@@ -207,6 +396,8 @@ final class ClinicalSyncRelease {
       activeIngredients: activeIngredients,
       medications: medications,
       presentations: presentations,
+      administrationGuidance: administrationGuidance,
+      incompatibilities: incompatibilities,
     );
   }
 
@@ -216,6 +407,8 @@ final class ClinicalSyncRelease {
   final List<SyncActiveIngredientRecord> activeIngredients;
   final List<SyncMedicationRecord> medications;
   final List<SyncPresentationRecord> presentations;
+  final List<SyncAdministrationGuidanceRecord> administrationGuidance;
+  final List<SyncIncompatibilityRecord> incompatibilities;
 }
 
 Map<String, dynamic> _requiredMap(Object? value, String field) {
@@ -244,4 +437,16 @@ String? _nullableString(Object? value) {
   }
   final trimmed = value.trim();
   return trimmed.isEmpty ? null : trimmed;
+}
+
+
+String? _nullableScalarString(Object? value) {
+  if (value == null) {
+    return null;
+  }
+  if (value is num || value is String) {
+    final text = value.toString().trim();
+    return text.isEmpty ? null : text;
+  }
+  throw const FormatException('Expected numeric/string scalar or null.');
 }
