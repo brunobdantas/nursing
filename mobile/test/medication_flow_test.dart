@@ -48,10 +48,7 @@ void main() {
         ),
         findsOneWidget,
       );
-      expect(
-        find.textContaining('DailyMed / FDA SPL'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('DailyMed / FDA SPL'), findsOneWidget);
 
       await tester.scrollUntilVisible(
         find.text('Bula e fontes oficiais'),
