@@ -39,6 +39,26 @@ void main() {
       await tester.drag(find.byType(ListView), const Offset(0, -560));
       await tester.pumpAndSettle();
 
+      expect(find.text('Bula estruturada offline'), findsOneWidget);
+      expect(
+        find.byKey(
+          const ValueKey<String>(
+            'structured-leaflet-99999999-9999-9999-9999-999999999999',
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.textContaining('DailyMed / FDA SPL'),
+        findsOneWidget,
+      );
+
+      await tester.scrollUntilVisible(
+        find.text('Bula e fontes oficiais'),
+        180,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
       expect(find.text('Bula e fontes oficiais'), findsOneWidget);
       expect(
         find.text('Cadastro regulatório: Anvisa • apresentações: CMED'),
