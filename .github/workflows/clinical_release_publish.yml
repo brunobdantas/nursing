@@ -97,6 +97,9 @@ jobs:
       - name: Seed critical administration guidance
         run: python ../scripts/seed_critical_drugs.py
 
+      - name: Seed structured public professional leaflets
+        run: python scripts/seed_structured_leaflets.py
+
       - name: Start sync API locally
         shell: bash
         run: |
@@ -143,6 +146,8 @@ jobs:
           assert len(data["presentations"]) > 0
           assert len(data["administration_guidance"]) > 0
           assert len(data["incompatibilities"]) > 0
+          assert len(data["professional_leaflets"]) > 0
+          assert len(data["medication_leaflet_links"]) > 0
           assert all(
               item.get("regulatory_status", "").casefold() != "inativo"
               for item in data["medications"]
@@ -160,6 +165,10 @@ jobs:
               len(data["administration_guidance"]),
               "incompatibilities:",
               len(data["incompatibilities"]),
+              "professional_leaflets:",
+              len(data["professional_leaflets"]),
+              "medication_leaflet_links:",
+              len(data["medication_leaflet_links"]),
           )
           PY
 
