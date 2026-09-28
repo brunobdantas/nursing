@@ -107,6 +107,31 @@ class PresentationDetail(ApiModel):
         return self
 
 
+class ProfessionalLeafletDetail(ApiModel):
+    id: UUID
+    source_name: str
+    source_document_id: str
+    source_version: str
+    source_language: str
+    source_url: str
+    source_effective_date: str | None = None
+    relation_type: str | None = None
+    indications_text: str | None = None
+    dosage_administration_text: str | None = None
+    contraindications_text: str | None = None
+    warnings_precautions_text: str | None = None
+    adverse_reactions_text: str | None = None
+    drug_interactions_text: str | None = None
+    specific_populations_text: str | None = None
+    overdosage_text: str | None = None
+    description_text: str | None = None
+    clinical_pharmacology_text: str | None = None
+    how_supplied_storage_text: str | None = None
+    patient_counseling_text: str | None = None
+    review_status: str
+    clinical_version: str | None = None
+
+
 class MedicationDetailResponse(ApiModel):
     id: UUID
     brand_name: str | None = None
@@ -119,6 +144,9 @@ class MedicationDetailResponse(ApiModel):
     professional_leaflet_url: str | None = None
     active_ingredients: list[ActiveIngredientSummary]
     presentations: list[PresentationDetail]
+    professional_leaflets: list[ProfessionalLeafletDetail] = Field(
+        default_factory=list
+    )
 
 
 class SyncActiveIngredient(ApiModel):
@@ -203,6 +231,36 @@ class SyncIncompatibility(ApiModel):
     source_url: str | None = None
 
 
+class SyncProfessionalLeaflet(ApiModel):
+    id: UUID
+    source_name: str
+    source_document_id: str
+    source_version: str
+    source_language: str
+    source_url: str
+    source_effective_date: str | None = None
+    indications_text: str | None = None
+    dosage_administration_text: str | None = None
+    contraindications_text: str | None = None
+    warnings_precautions_text: str | None = None
+    adverse_reactions_text: str | None = None
+    drug_interactions_text: str | None = None
+    specific_populations_text: str | None = None
+    overdosage_text: str | None = None
+    description_text: str | None = None
+    clinical_pharmacology_text: str | None = None
+    how_supplied_storage_text: str | None = None
+    patient_counseling_text: str | None = None
+    review_status: str
+    clinical_version: str | None = None
+
+
+class SyncMedicationLeafletLink(ApiModel):
+    medication_product_id: UUID
+    professional_leaflet_id: UUID
+    relation_type: str
+
+
 class SyncContentResponse(ApiModel):
     release_schema: str = "clinical-release-v1"
     content_version: str
@@ -212,3 +270,9 @@ class SyncContentResponse(ApiModel):
     presentations: list[SyncPresentation]
     administration_guidance: list[SyncAdministrationGuidance]
     incompatibilities: list[SyncIncompatibility]
+    professional_leaflets: list[SyncProfessionalLeaflet] = Field(
+        default_factory=list
+    )
+    medication_leaflet_links: list[SyncMedicationLeafletLink] = Field(
+        default_factory=list
+    )
