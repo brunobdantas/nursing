@@ -377,19 +377,41 @@ class _SyncStatusCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: theme.colorScheme.outlineVariant),
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, size: 20, color: theme.colorScheme.onSurfaceVariant),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                current?.displayText ?? 'Verificando base clínica',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w600,
+            Row(
+              children: [
+                Icon(icon, size: 20, color: theme.colorScheme.onSurfaceVariant),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    current?.displayText ?? 'Verificando base clínica',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
-              ),
+                if (current?.canRetry ?? false)
+                  IconButton(
+                    tooltip: 'Tentar sincronizar novamente',
+                    onPressed: onRetry,
+                    icon: const Icon(Icons.refresh_rounded),
+                  ),
+              ],
             ),
+            if (current?.isBusy ?? true) ...[
+              const SizedBox(height: 10),
+              LinearProgressIndicator(
+                key: const ValueKey<String>('clinical-sync-progress'),
+                value: current?.state == ClinicalSyncState.downloading
+                    ? current?.progressFraction
+                    : null,
+                minHeight: 7,
+                borderRadius: BorderRadius.circular(99),
+              ),
+            ],
           ],
         ),
       ),
