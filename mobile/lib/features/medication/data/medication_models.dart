@@ -285,12 +285,103 @@ final class PresentationDetail {
   }
 }
 
+final class AdministrationGuidanceDetail {
+  const AdministrationGuidanceDetail({
+    required this.id,
+    required this.presentationId,
+    required this.route,
+    required this.instructionText,
+    required this.reviewStatus,
+    this.administrationMethod,
+    this.diluentName,
+    this.diluentVolumeValue,
+    this.diluentVolumeUnit,
+    this.resultingTotalVolumeValue,
+    this.resultingTotalVolumeUnit,
+    this.administrationTimeMinMinutes,
+    this.administrationTimeMaxMinutes,
+    this.clinicalVersion,
+    this.sourceName,
+    this.sourceUrl,
+    this.calculatorFormulaId,
+    this.calculatorVolumeMl,
+    this.calculatorDurationMinutes,
+  });
+
+  final String id;
+  final String presentationId;
+  final RouteSummary route;
+  final String? administrationMethod;
+  final String? diluentName;
+  final Decimal? diluentVolumeValue;
+  final String? diluentVolumeUnit;
+  final Decimal? resultingTotalVolumeValue;
+  final String? resultingTotalVolumeUnit;
+  final Decimal? administrationTimeMinMinutes;
+  final Decimal? administrationTimeMaxMinutes;
+  final String instructionText;
+  final String reviewStatus;
+  final String? clinicalVersion;
+  final String? sourceName;
+  final String? sourceUrl;
+  final String? calculatorFormulaId;
+  final Decimal? calculatorVolumeMl;
+  final Decimal? calculatorDurationMinutes;
+
+  String get infusionTimeLabel {
+    final min = administrationTimeMinMinutes;
+    final max = administrationTimeMaxMinutes;
+    if (min == null && max == null) {
+      return 'Tempo definido conforme indicação/protocolo';
+    }
+    if (min != null && max != null && min == max) {
+      return '${_decimalDisplay(min)} min';
+    }
+    if (min != null && max != null) {
+      return '${_decimalDisplay(min)}–${_decimalDisplay(max)} min';
+    }
+    return '${_decimalDisplay(min ?? max!)} min';
+  }
+}
+
+final class MedicationIncompatibility {
+  const MedicationIncompatibility({
+    required this.id,
+    required this.activeIngredientId,
+    required this.incompatibleIngredientId,
+    required this.incompatibleIngredientName,
+    required this.interactionType,
+    required this.severity,
+    required this.description,
+    required this.reviewStatus,
+    this.clinicalVersion,
+    this.sourceName,
+    this.sourceUrl,
+  });
+
+  final String id;
+  final String activeIngredientId;
+  final String incompatibleIngredientId;
+  final String incompatibleIngredientName;
+  final String interactionType;
+  final String severity;
+  final String description;
+  final String reviewStatus;
+  final String? clinicalVersion;
+  final String? sourceName;
+  final String? sourceUrl;
+
+  bool get isCritical => severity.toLowerCase() == 'critical';
+}
+
 final class MedicationDetailResponse {
   const MedicationDetailResponse({
     required this.id,
     required this.genericName,
     required this.activeIngredients,
     required this.presentations,
+    this.administrationGuidance = const <AdministrationGuidanceDetail>[],
+    this.incompatibilities = const <MedicationIncompatibility>[],
     this.brandName,
     this.anvisaRegistrationNumber,
     this.manufacturerName,
@@ -349,6 +440,8 @@ final class MedicationDetailResponse {
   final String? professionalLeafletUrl;
   final List<ActiveIngredientSummary> activeIngredients;
   final List<PresentationDetail> presentations;
+  final List<AdministrationGuidanceDetail> administrationGuidance;
+  final List<MedicationIncompatibility> incompatibilities;
 
   String get displayName => brandName ?? genericName;
 
@@ -434,4 +527,13 @@ Decimal? _nullableDecimal(Object? value) {
     return null;
   }
   return _decimal(value, 'decimal');
+}
+
+
+String _decimalDisplay(Decimal value) {
+  final text = value.toString();
+  if (!text.contains('.')) {
+    return text;
+  }
+  return text.replaceFirst(RegExp(r'\.?0+$'), '');
 }
