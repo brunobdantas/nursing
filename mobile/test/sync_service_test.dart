@@ -50,6 +50,17 @@ void main() {
       final first = await service.syncIfNeeded();
       expect(first.state, ClinicalSyncState.updated);
       expect(first.hasLocalContent, isTrue);
+      final guidance = await database.administrationGuidanceForMedication(
+        'med-1',
+      );
+      expect(guidance, hasLength(1));
+      expect(guidance.single['calculator_formula_id'], 'MED_INFUSION_ML_H');
+      final incompatibilities =
+          await database.incompatibilitiesForIngredientIds(
+            const <String>['ingredient-1'],
+          );
+      expect(incompatibilities, hasLength(1));
+      expect(incompatibilities.single['severity'], 'critical');
 
       final second = await service.syncIfNeeded();
       expect(second.state, ClinicalSyncState.current);
@@ -272,6 +283,12 @@ Map<String, Object?> _releaseJson() {
         'normalized_name': 'dipirona',
         'atc_code': 'N02BB02',
       },
+      <String, Object?>{
+        'id': 'ingredient-2',
+        'canonical_name': 'Bicarbonato de sódio',
+        'normalized_name': 'bicarbonato de sodio',
+        'atc_code': null,
+      },
     ],
     'medications': <Object?>[
       <String, Object?>{
@@ -315,6 +332,49 @@ Map<String, Object?> _releaseJson() {
         'package_unit': 'mL',
         'calculation_ready': true,
         'regulatory_status': 'VÁLIDO',
+      },
+    ],
+    'administration_guidance': <Object?>[
+      <String, Object?>{
+        'id': 'guidance-1',
+        'medication_product_id': 'med-1',
+        'presentation_id': 'presentation-1',
+        'route': <String, Object?>{
+          'id': 'route-1',
+          'code': 'IV',
+          'name': 'Intravenosa',
+        },
+        'administration_method': 'Infusão intravenosa',
+        'diluent_name': 'SG 5%',
+        'diluent_volume_value': '100',
+        'diluent_volume_unit': 'mL',
+        'resulting_total_volume_value': '100',
+        'resulting_total_volume_unit': 'mL',
+        'administration_time_min_minutes': '10',
+        'administration_time_max_minutes': '10',
+        'instruction_text': 'Conteúdo clínico versionado de teste.',
+        'review_status': 'public_label_verified',
+        'clinical_version': 'cycle10-test',
+        'source_name': 'Fonte pública',
+        'source_url': 'https://example.test/source',
+        'calculator_formula_id': 'MED_INFUSION_ML_H',
+        'calculator_volume_ml': '100',
+        'calculator_duration_minutes': '10',
+      },
+    ],
+    'incompatibilities': <Object?>[
+      <String, Object?>{
+        'id': 'incompatibility-1',
+        'active_ingredient_id': 'ingredient-1',
+        'incompatible_ingredient_id': 'ingredient-2',
+        'incompatible_ingredient_name': 'Bicarbonato de sódio',
+        'interaction_type': 'y_site',
+        'severity': 'critical',
+        'description': 'Não administrar simultaneamente em Y.',
+        'review_status': 'public_label_verified',
+        'clinical_version': 'cycle10-test',
+        'source_name': 'Fonte pública',
+        'source_url': 'https://example.test/source',
       },
     ],
   };
