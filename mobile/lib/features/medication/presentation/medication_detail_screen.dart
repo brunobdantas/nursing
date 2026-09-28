@@ -601,10 +601,7 @@ class _AdministrationGuidanceCard extends StatelessWidget {
               _GuidanceFact(label: 'Volume', value: volumeLabel),
             ],
             const SizedBox(height: 8),
-            _GuidanceFact(
-              label: 'Tempo',
-              value: guidance.infusionTimeLabel,
-            ),
+            _GuidanceFact(label: 'Tempo', value: guidance.infusionTimeLabel),
             const SizedBox(height: 12),
             Text(guidance.instructionText, style: theme.textTheme.bodyLarge),
             const SizedBox(height: 12),
@@ -634,8 +631,8 @@ class _AdministrationGuidanceCard extends StatelessWidget {
                     queryParameters: <String, String>{
                       'volumeMl': guidance.calculatorVolumeMl.toString(),
                       if (guidance.calculatorDurationMinutes != null)
-                        'durationMinutes':
-                            guidance.calculatorDurationMinutes.toString(),
+                        'durationMinutes': guidance.calculatorDurationMinutes
+                            .toString(),
                       'context':
                           '$medicationName • preparo referenciado '
                           '(${guidance.sourceName ?? 'fonte clínica'})',
