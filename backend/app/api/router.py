@@ -29,17 +29,21 @@ from app.api.schemas import (
     SyncAdministrationGuidance,
     SyncContentResponse,
     SyncIncompatibility,
+    SyncMedicationLeafletLink,
     SyncMedicationProduct,
     SyncPresentation,
+    SyncProfessionalLeaflet,
 )
 from app.db.models import (
     ActiveIngredient,
     AdministrationGuidance,
     Incompatibility,
+    MedicationLeafletLink,
     MedicationProduct,
     MedicationProductIngredient,
     Presentation,
     PresentationRoute,
+    ProfessionalLeaflet,
 )
 
 router = APIRouter(prefix="/v1", tags=["medications"])
@@ -263,6 +267,7 @@ async def get_sync_content(
         for link in product.ingredient_links
         if link.active_ingredient.is_active
     }
+    product_ids = {product.id for product in products}
     active_presentation_ids = {
         presentation.id
         for product in products
@@ -312,6 +317,38 @@ async def get_sync_content(
     else:
         incompatibility_rows = []
 
+    if product_ids:
+        leaflet_stmt = (
+            select(ProfessionalLeaflet)
+            .join(
+                MedicationLeafletLink,
+                MedicationLeafletLink.professional_leaflet_id
+                == ProfessionalLeaflet.id,
+            )
+            .options(selectinload(ProfessionalLeaflet.medication_links))
+            .where(
+                ProfessionalLeaflet.is_current.is_(True),
+                ProfessionalLeaflet.review_status.in_(
+                    ("approved", "public_label_verified", "automated_validated")
+                ),
+                MedicationLeafletLink.medication_product_id.in_(product_ids),
+                MedicationLeafletLink.is_current.is_(True),
+                MedicationLeafletLink.review_status.in_(
+                    ("approved", "public_label_verified", "automated_validated")
+                ),
+            )
+            .order_by(
+                ProfessionalLeaflet.source_name,
+                ProfessionalLeaflet.source_document_id,
+                ProfessionalLeaflet.source_version,
+            )
+        )
+        leaflet_rows = list(
+            (await session.scalars(leaflet_stmt)).unique().all()
+        )
+    else:
+        leaflet_rows = []
+
     referenced_ingredient_ids = set(product_ingredient_ids)
     referenced_ingredient_ids.update(
         item.incompatible_ingredient_id for item in incompatibility_rows
@@ -351,6 +388,53 @@ async def get_sync_content(
     sync_presentations: list[SyncPresentation] = []
     sync_guidance: list[SyncAdministrationGuidance] = []
     sync_incompatibilities: list[SyncIncompatibility] = []
+    sync_leaflets: list[SyncProfessionalLeaflet] = []
+    sync_leaflet_links: list[SyncMedicationLeafletLink] = []
+
+    for row in leaflet_rows:
+        sync_leaflets.append(
+            SyncProfessionalLeaflet(
+                id=row.id,
+                source_name=row.source_name,
+                source_document_id=row.source_document_id,
+                source_version=row.source_version,
+                source_language=row.source_language,
+                source_url=row.source_url,
+                source_effective_date=row.source_effective_date,
+                indications_text=row.indications_text,
+                dosage_administration_text=row.dosage_administration_text,
+                contraindications_text=row.contraindications_text,
+                warnings_precautions_text=row.warnings_precautions_text,
+                adverse_reactions_text=row.adverse_reactions_text,
+                drug_interactions_text=row.drug_interactions_text,
+                specific_populations_text=row.specific_populations_text,
+                overdosage_text=row.overdosage_text,
+                description_text=row.description_text,
+                clinical_pharmacology_text=row.clinical_pharmacology_text,
+                how_supplied_storage_text=row.how_supplied_storage_text,
+                patient_counseling_text=row.patient_counseling_text,
+                review_status=row.review_status,
+                clinical_version=row.clinical_version,
+            )
+        )
+        for link in sorted(
+            (
+                item
+                for item in row.medication_links
+                if item.medication_product_id in product_ids
+                and item.is_current
+                and item.review_status
+                in ("approved", "public_label_verified", "automated_validated")
+            ),
+            key=lambda item: (str(item.medication_product_id), item.relation_type),
+        ):
+            sync_leaflet_links.append(
+                SyncMedicationLeafletLink(
+                    medication_product_id=link.medication_product_id,
+                    professional_leaflet_id=row.id,
+                    relation_type=link.relation_type,
+                )
+            )
 
     for row in guidance_rows:
         product_id = presentation_to_product_id.get(row.presentation_id)
@@ -522,6 +606,12 @@ async def get_sync_content(
         "incompatibilities": [
             item.model_dump(mode="json") for item in sync_incompatibilities
         ],
+        "professional_leaflets": [
+            item.model_dump(mode="json") for item in sync_leaflets
+        ],
+        "medication_leaflet_links": [
+            item.model_dump(mode="json") for item in sync_leaflet_links
+        ],
     }
     release_bytes = json.dumps(
         release_basis,
@@ -553,6 +643,8 @@ async def get_sync_content(
         presentations=sync_presentations,
         administration_guidance=sync_guidance,
         incompatibilities=sync_incompatibilities,
+        professional_leaflets=sync_leaflets,
+        medication_leaflet_links=sync_leaflet_links,
     )
 
 
