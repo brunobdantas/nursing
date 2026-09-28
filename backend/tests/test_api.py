@@ -264,6 +264,7 @@ async def test_sync_content_returns_versioned_active_release_with_etag_and_gzip(
                 FakeScalarResult([product]),
                 FakeScalarResult([]),
                 FakeScalarResult([]),
+                FakeScalarResult([]),
                 FakeScalarResult([ingredient]),
             ]
         )
