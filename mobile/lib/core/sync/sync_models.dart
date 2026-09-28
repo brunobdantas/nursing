@@ -256,6 +256,122 @@ final class SyncIncompatibilityRecord {
   final String? sourceUrl;
 }
 
+final class SyncProfessionalLeafletRecord {
+  const SyncProfessionalLeafletRecord({
+    required this.id,
+    required this.sourceName,
+    required this.sourceDocumentId,
+    required this.sourceVersion,
+    required this.sourceLanguage,
+    required this.sourceUrl,
+    required this.reviewStatus,
+    this.sourceEffectiveDate,
+    this.indicationsText,
+    this.dosageAdministrationText,
+    this.contraindicationsText,
+    this.warningsPrecautionsText,
+    this.adverseReactionsText,
+    this.drugInteractionsText,
+    this.specificPopulationsText,
+    this.overdosageText,
+    this.descriptionText,
+    this.clinicalPharmacologyText,
+    this.howSuppliedStorageText,
+    this.patientCounselingText,
+    this.clinicalVersion,
+  });
+
+  factory SyncProfessionalLeafletRecord.fromJson(Map<String, dynamic> json) {
+    return SyncProfessionalLeafletRecord(
+      id: _requiredString(json['id'], 'id'),
+      sourceName: _requiredString(json['source_name'], 'source_name'),
+      sourceDocumentId: _requiredString(
+        json['source_document_id'],
+        'source_document_id',
+      ),
+      sourceVersion: _requiredString(json['source_version'], 'source_version'),
+      sourceLanguage: _requiredString(
+        json['source_language'],
+        'source_language',
+      ),
+      sourceUrl: _requiredString(json['source_url'], 'source_url'),
+      sourceEffectiveDate: _nullableString(json['source_effective_date']),
+      indicationsText: _nullableString(json['indications_text']),
+      dosageAdministrationText: _nullableString(
+        json['dosage_administration_text'],
+      ),
+      contraindicationsText: _nullableString(json['contraindications_text']),
+      warningsPrecautionsText: _nullableString(
+        json['warnings_precautions_text'],
+      ),
+      adverseReactionsText: _nullableString(json['adverse_reactions_text']),
+      drugInteractionsText: _nullableString(json['drug_interactions_text']),
+      specificPopulationsText: _nullableString(
+        json['specific_populations_text'],
+      ),
+      overdosageText: _nullableString(json['overdosage_text']),
+      descriptionText: _nullableString(json['description_text']),
+      clinicalPharmacologyText: _nullableString(
+        json['clinical_pharmacology_text'],
+      ),
+      howSuppliedStorageText: _nullableString(
+        json['how_supplied_storage_text'],
+      ),
+      patientCounselingText: _nullableString(json['patient_counseling_text']),
+      reviewStatus: _requiredString(json['review_status'], 'review_status'),
+      clinicalVersion: _nullableString(json['clinical_version']),
+    );
+  }
+
+  final String id;
+  final String sourceName;
+  final String sourceDocumentId;
+  final String sourceVersion;
+  final String sourceLanguage;
+  final String sourceUrl;
+  final String? sourceEffectiveDate;
+  final String? indicationsText;
+  final String? dosageAdministrationText;
+  final String? contraindicationsText;
+  final String? warningsPrecautionsText;
+  final String? adverseReactionsText;
+  final String? drugInteractionsText;
+  final String? specificPopulationsText;
+  final String? overdosageText;
+  final String? descriptionText;
+  final String? clinicalPharmacologyText;
+  final String? howSuppliedStorageText;
+  final String? patientCounselingText;
+  final String reviewStatus;
+  final String? clinicalVersion;
+}
+
+final class SyncMedicationLeafletLinkRecord {
+  const SyncMedicationLeafletLinkRecord({
+    required this.medicationProductId,
+    required this.professionalLeafletId,
+    required this.relationType,
+  });
+
+  factory SyncMedicationLeafletLinkRecord.fromJson(Map<String, dynamic> json) {
+    return SyncMedicationLeafletLinkRecord(
+      medicationProductId: _requiredString(
+        json['medication_product_id'],
+        'medication_product_id',
+      ),
+      professionalLeafletId: _requiredString(
+        json['professional_leaflet_id'],
+        'professional_leaflet_id',
+      ),
+      relationType: _requiredString(json['relation_type'], 'relation_type'),
+    );
+  }
+
+  final String medicationProductId;
+  final String professionalLeafletId;
+  final String relationType;
+}
+
 final class ClinicalSyncRelease {
   const ClinicalSyncRelease({
     required this.releaseSchema,
@@ -266,6 +382,8 @@ final class ClinicalSyncRelease {
     required this.presentations,
     this.administrationGuidance = const <SyncAdministrationGuidanceRecord>[],
     this.incompatibilities = const <SyncIncompatibilityRecord>[],
+    this.professionalLeaflets = const <SyncProfessionalLeafletRecord>[],
+    this.medicationLeafletLinks = const <SyncMedicationLeafletLinkRecord>[],
   });
 
   factory ClinicalSyncRelease.fromJson(Map<String, dynamic> json) {
@@ -302,11 +420,17 @@ final class ClinicalSyncRelease {
     final rawAdministrationGuidance =
         json['administration_guidance'] ?? const <dynamic>[];
     final rawIncompatibilities = json['incompatibilities'] ?? const <dynamic>[];
+    final rawProfessionalLeaflets =
+        json['professional_leaflets'] ?? const <dynamic>[];
+    final rawMedicationLeafletLinks =
+        json['medication_leaflet_links'] ?? const <dynamic>[];
     if (rawIngredients is! List<dynamic> ||
         rawMedications is! List<dynamic> ||
         rawPresentations is! List<dynamic> ||
         rawAdministrationGuidance is! List<dynamic> ||
-        rawIncompatibilities is! List<dynamic>) {
+        rawIncompatibilities is! List<dynamic> ||
+        rawProfessionalLeaflets is! List<dynamic> ||
+        rawMedicationLeafletLinks is! List<dynamic>) {
       throw const FormatException(
         'Clinical release collections must be lists.',
       );
@@ -344,6 +468,20 @@ final class ClinicalSyncRelease {
         .map(
           (item) => SyncIncompatibilityRecord.fromJson(
             _requiredMap(item, 'incompatibilities[]'),
+          ),
+        )
+        .toList(growable: false);
+    final professionalLeaflets = rawProfessionalLeaflets
+        .map(
+          (item) => SyncProfessionalLeafletRecord.fromJson(
+            _requiredMap(item, 'professional_leaflets[]'),
+          ),
+        )
+        .toList(growable: false);
+    final medicationLeafletLinks = rawMedicationLeafletLinks
+        .map(
+          (item) => SyncMedicationLeafletLinkRecord.fromJson(
+            _requiredMap(item, 'medication_leaflet_links[]'),
           ),
         )
         .toList(growable: false);
@@ -388,6 +526,16 @@ final class ClinicalSyncRelease {
       }
     }
 
+    final leafletIds = professionalLeaflets.map((item) => item.id).toSet();
+    for (final link in medicationLeafletLinks) {
+      if (!medicationIds.contains(link.medicationProductId) ||
+          !leafletIds.contains(link.professionalLeafletId)) {
+        throw const FormatException(
+          'Structured leaflet link references unknown clinical content.',
+        );
+      }
+    }
+
     return ClinicalSyncRelease(
       releaseSchema: releaseSchema,
       contentVersion: contentVersion,
@@ -397,6 +545,8 @@ final class ClinicalSyncRelease {
       presentations: presentations,
       administrationGuidance: administrationGuidance,
       incompatibilities: incompatibilities,
+      professionalLeaflets: professionalLeaflets,
+      medicationLeafletLinks: medicationLeafletLinks,
     );
   }
 
@@ -408,6 +558,8 @@ final class ClinicalSyncRelease {
   final List<SyncPresentationRecord> presentations;
   final List<SyncAdministrationGuidanceRecord> administrationGuidance;
   final List<SyncIncompatibilityRecord> incompatibilities;
+  final List<SyncProfessionalLeafletRecord> professionalLeaflets;
+  final List<SyncMedicationLeafletLinkRecord> medicationLeafletLinks;
 }
 
 Map<String, dynamic> _requiredMap(Object? value, String field) {
