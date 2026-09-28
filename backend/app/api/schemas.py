@@ -166,6 +166,43 @@ class SyncPresentation(ApiModel):
         return self
 
 
+class SyncAdministrationGuidance(ApiModel):
+    id: UUID
+    medication_product_id: UUID
+    presentation_id: UUID
+    route: RouteSummary
+    administration_method: str | None = None
+    diluent_name: str | None = None
+    diluent_volume_value: Decimal | None = None
+    diluent_volume_unit: str | None = None
+    resulting_total_volume_value: Decimal | None = None
+    resulting_total_volume_unit: str | None = None
+    administration_time_min_minutes: Decimal | None = None
+    administration_time_max_minutes: Decimal | None = None
+    instruction_text: str
+    review_status: str
+    clinical_version: str | None = None
+    source_name: str | None = None
+    source_url: str | None = None
+    calculator_formula_id: str | None = None
+    calculator_volume_ml: Decimal | None = None
+    calculator_duration_minutes: Decimal | None = None
+
+
+class SyncIncompatibility(ApiModel):
+    id: UUID
+    active_ingredient_id: UUID
+    incompatible_ingredient_id: UUID
+    incompatible_ingredient_name: str
+    interaction_type: str
+    severity: str
+    description: str
+    review_status: str
+    clinical_version: str | None = None
+    source_name: str | None = None
+    source_url: str | None = None
+
+
 class SyncContentResponse(ApiModel):
     release_schema: str = "clinical-release-v1"
     content_version: str
@@ -173,3 +210,5 @@ class SyncContentResponse(ApiModel):
     active_ingredients: list[SyncActiveIngredient]
     medications: list[SyncMedicationProduct]
     presentations: list[SyncPresentation]
+    administration_guidance: list[SyncAdministrationGuidance]
+    incompatibilities: list[SyncIncompatibility]
