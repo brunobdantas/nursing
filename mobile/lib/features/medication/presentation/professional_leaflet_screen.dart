@@ -48,11 +48,7 @@ class _ProfessionalLeafletScreenState extends State<ProfessionalLeafletScreen> {
     }
     final root = await getApplicationSupportDirectory();
     return File(
-      p.join(
-        root.path,
-        'professional_leaflets',
-        'anvisa_' + registration + '.pdf',
-      ),
+      p.join(root.path, 'professional_leaflets', 'anvisa_$registration.pdf'),
     );
   }
 
@@ -222,10 +218,7 @@ class _ProfessionalLeafletScreenState extends State<ProfessionalLeafletScreen> {
                     icon: Icons.verified_outlined,
                     text: registration == null
                         ? 'Fonte oficial: Bulário Eletrônico da Anvisa.'
-                        : 'Fonte oficial: Bulário Eletrônico da Anvisa. '
-                                  'Registro: ' +
-                              registration +
-                              '.',
+                        : 'Fonte oficial: Bulário Eletrônico da Anvisa. Registro: $registration.',
                   ),
                   if (_usingFallback)
                     const _SourceBanner(

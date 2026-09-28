@@ -251,7 +251,7 @@ class _GlobalClinicalSearchScreenState
                       ? const Icon(Icons.chevron_right_rounded)
                       : null,
                   onTap: item.isMedicationProduct
-                      ? () => context.push('/medications/' + item.id)
+                      ? () => context.push('/medications/${item.id}')
                       : null,
                 ),
               ),
@@ -380,10 +380,7 @@ class _ClinicalAssistantScreenState extends State<ClinicalAssistantScreen> {
       final answer = products.isEmpty
           ? 'Não encontrei medicamento correspondente na base clínica '
                 'instalada. Não vou inferir uma resposta sem fonte local.'
-          : 'Encontrei ' +
-                products.length.toString() +
-                ' resultado(s) na base offline. Abra a ficha para conferir '
-                    'apresentações, registro e recursos de cálculo.';
+          : 'Encontrei ${products.length} resultado(s) na base offline. Abra a ficha para conferir apresentações, registro e recursos de cálculo.';
       setState(() {
         _turns.add(_AssistantTurn.assistant(answer, results: products));
         _loading = false;
@@ -594,7 +591,7 @@ class _InteractionCheckerScreenState extends State<InteractionCheckerScreen> {
                       title: Text(_firstMatch!.displayName),
                       trailing: const Icon(Icons.chevron_right_rounded),
                       onTap: () =>
-                          context.push('/medications/' + _firstMatch!.id),
+                          context.push('/medications/${_firstMatch!.id}'),
                     ),
                     const Divider(height: 1),
                     ListTile(
@@ -602,7 +599,7 @@ class _InteractionCheckerScreenState extends State<InteractionCheckerScreen> {
                       title: Text(_secondMatch!.displayName),
                       trailing: const Icon(Icons.chevron_right_rounded),
                       onTap: () =>
-                          context.push('/medications/' + _secondMatch!.id),
+                          context.push('/medications/${_secondMatch!.id}'),
                     ),
                   ],
                 ),
@@ -693,7 +690,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                   subtitle: Text(item.genericName),
                   trailing: const Icon(Icons.chevron_right_rounded),
                   onTap: () async {
-                    await context.push('/medications/' + item.id);
+                    await context.push('/medications/${item.id}');
                     if (mounted) {
                       await _load();
                     }
@@ -825,7 +822,7 @@ class _AssistantBubble extends StatelessWidget {
             for (final item in turn.results) ...[
               const SizedBox(height: 8),
               OutlinedButton.icon(
-                onPressed: () => context.push('/medications/' + item.id),
+                onPressed: () => context.push('/medications/${item.id}'),
                 icon: const Icon(Icons.medication_outlined),
                 label: Text(item.displayName),
               ),

@@ -269,7 +269,7 @@ class _WorkspaceHome extends StatelessWidget {
                   title: Text(item.displayName),
                   subtitle: Text(item.genericName),
                   trailing: const Icon(Icons.chevron_right_rounded),
-                  onTap: () => onOpen('/medications/' + item.id),
+                  onTap: () => onOpen('/medications/${item.id}'),
                 ),
               ),
         const SizedBox(height: 18),
@@ -291,7 +291,7 @@ class _WorkspaceHome extends StatelessWidget {
                   title: Text(item.displayName),
                   subtitle: Text(item.genericName),
                   trailing: const Icon(Icons.chevron_right_rounded),
-                  onTap: () => onOpen('/medications/' + item.id),
+                  onTap: () => onOpen('/medications/${item.id}'),
                 ),
               ),
       ],
@@ -481,7 +481,7 @@ class _ProfilePage extends StatelessWidget {
               ListTile(
                 leading: const Icon(Icons.star_outline_rounded),
                 title: const Text('Favoritos'),
-                subtitle: Text(favorites.length.toString() + ' salvos'),
+                subtitle: Text('${favorites.length} salvos'),
                 trailing: const Icon(Icons.chevron_right_rounded),
                 onTap: () => onOpen('/favorites'),
               ),
@@ -489,9 +489,7 @@ class _ProfilePage extends StatelessWidget {
               ListTile(
                 leading: const Icon(Icons.history_rounded),
                 title: const Text('Histórico recente'),
-                subtitle: Text(
-                  recent.length.toString() + ' itens neste dispositivo',
-                ),
+                subtitle: Text('${recent.length} itens neste dispositivo'),
               ),
               const Divider(height: 1),
               ListTile(

@@ -320,7 +320,7 @@ class _FlashcardsScreenState extends State<FlashcardsScreen> {
             style: Theme.of(context).textTheme.titleLarge,
           ),
           const SizedBox(height: 6),
-          Text('Revisões acumuladas: ' + total.toString()),
+          Text('Revisões acumuladas: $total'),
           const SizedBox(height: 12),
           LinearProgressIndicator(value: (_index + 1) / _cards.length),
           const SizedBox(height: 24),
@@ -370,12 +370,7 @@ class _FlashcardsScreenState extends State<FlashcardsScreen> {
               ],
             ),
           const SizedBox(height: 14),
-          Text(
-            'Acertos: ' +
-                _correct.toString() +
-                ' • Erros: ' +
-                _incorrect.toString(),
-          ),
+          Text('Acertos: $_correct • Erros: $_incorrect'),
         ],
       ),
     );
@@ -470,10 +465,7 @@ class _QuizzesScreenState extends State<QuizzesScreen> {
         padding: const EdgeInsets.fromLTRB(20, 18, 20, 28),
         children: [
           Text(
-            'Questão ' +
-                (_index + 1).toString() +
-                ' de ' +
-                _questions.length.toString(),
+            'Questão ${_index + 1} de ${_questions.length}',
             style: Theme.of(context).textTheme.labelLarge,
           ),
           const SizedBox(height: 8),
@@ -504,11 +496,8 @@ class _QuizzesScreenState extends State<QuizzesScreen> {
                 padding: const EdgeInsets.all(16),
                 child: Text(
                   _selected == question.correctIndex
-                      ? 'Correto. ' + question.explanation
-                      : 'Resposta: ' +
-                            question.options[question.correctIndex] +
-                            '. ' +
-                            question.explanation,
+                      ? 'Correto. ${question.explanation}'
+                      : 'Resposta: ${question.options[question.correctIndex]}. ${question.explanation}',
                 ),
               ),
             ),
@@ -523,7 +512,7 @@ class _QuizzesScreenState extends State<QuizzesScreen> {
             ),
           ],
           const SizedBox(height: 12),
-          Text('Pontuação atual: ' + _score.toString()),
+          Text('Pontuação atual: $_score'),
         ],
       ),
     );

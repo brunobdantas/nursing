@@ -274,9 +274,7 @@ class _CalculatorPlaceholderScreen extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Text(
-            title +
-                ' exige uma fórmula clínica versionada e permanece '
-                    'bloqueada até a validação editorial.',
+            '$title exige uma fórmula clínica versionada e permanece bloqueada até a validação editorial.',
             textAlign: TextAlign.center,
           ),
         ),
