@@ -106,6 +106,22 @@ MedicationDetailResponse sampleMedicationDetail() {
         calculatorDurationMinutes: Decimal.parse('10'),
       ),
     ],
+    professionalLeaflets: const <ProfessionalLeafletDetail>[
+      ProfessionalLeafletDetail(
+        id: '99999999-9999-9999-9999-999999999999',
+        sourceName: 'DailyMed / FDA SPL',
+        sourceDocumentId: 'test-set-id',
+        sourceVersion: '7',
+        sourceLanguage: 'en-US',
+        sourceUrl: 'https://example.test/leaflet',
+        reviewStatus: 'public_label_verified',
+        relationType: 'active_ingredient_reference',
+        indicationsText: 'Indications structured test content.',
+        dosageAdministrationText: 'Dosage structured test content.',
+        contraindicationsText: 'Contraindications structured test content.',
+        clinicalVersion: 'hotfix-1.5.1-test',
+      ),
+    ],
     incompatibilities: const <MedicationIncompatibility>[
       MedicationIncompatibility(
         id: '77777777-7777-7777-7777-777777777777',
