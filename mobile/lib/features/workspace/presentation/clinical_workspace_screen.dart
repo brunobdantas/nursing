@@ -567,7 +567,7 @@ class _ProfilePage extends StatelessWidget {
         const Card(
           child: ListTile(
             leading: Icon(Icons.verified_user_outlined),
-            title: Text('Nursing 1.4.0'),
+            title: Text('Nursing 1.5.0'),
             subtitle: Text(
               'Apoio à decisão. Não substitui prescrição, protocolo '
               'institucional ou julgamento clínico.',
