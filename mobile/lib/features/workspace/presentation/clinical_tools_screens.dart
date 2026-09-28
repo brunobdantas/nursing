@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../theme/clinical_theme.dart';
 import '../../home/data/favorite_medication_repository.dart';
@@ -26,6 +27,7 @@ class _GlobalClinicalSearchScreenState
   Timer? _debounce;
   _GlobalSearchFilter _filter = _GlobalSearchFilter.all;
   List<MedicationSearchResult> _medications = const <MedicationSearchResult>[];
+  List<String> _history = const <String>[];
   bool _loading = false;
   String? _error;
 
@@ -73,6 +75,69 @@ class _GlobalClinicalSearchScreenState
       _GlobalSearchFilter.tools,
     ),
     _SearchAction(
+      'Prescrição e preparo',
+      'Conteúdo',
+      Icons.receipt_long_outlined,
+      '/areas/prescription',
+      _GlobalSearchFilter.tools,
+    ),
+    _SearchAction(
+      'Emergência & UTI',
+      'Conteúdo',
+      Icons.monitor_heart_outlined,
+      '/areas/emergency',
+      _GlobalSearchFilter.tools,
+    ),
+    _SearchAction(
+      'Pediatria',
+      'Conteúdo',
+      Icons.child_care_outlined,
+      '/areas/pediatrics',
+      _GlobalSearchFilter.tools,
+    ),
+    _SearchAction(
+      'Saúde da mulher & obstetrícia',
+      'Conteúdo',
+      Icons.pregnant_woman_outlined,
+      '/areas/obgyn',
+      _GlobalSearchFilter.tools,
+    ),
+    _SearchAction(
+      'Cirurgia & perioperatório',
+      'Conteúdo',
+      Icons.medical_services_outlined,
+      '/areas/surgery',
+      _GlobalSearchFilter.tools,
+    ),
+    _SearchAction(
+      'Antimicrobianos',
+      'Conteúdo',
+      Icons.science_outlined,
+      '/areas/antimicrobials',
+      _GlobalSearchFilter.tools,
+    ),
+    _SearchAction(
+      'Vacinação',
+      'Conteúdo',
+      Icons.vaccines_outlined,
+      '/areas/vaccination',
+      _GlobalSearchFilter.tools,
+    ),
+    _SearchAction(
+      'Laboratório & exames',
+      'Conteúdo',
+      Icons.biotech_outlined,
+      '/areas/labs',
+      _GlobalSearchFilter.tools,
+    ),
+    _SearchAction(
+      'Raciocínio diferencial',
+      'Ferramenta',
+      Icons.psychology_alt_outlined,
+      '/differential',
+      _GlobalSearchFilter.tools,
+    ),
+    _SearchAction(
       'Flashcards',
       'Estudo',
       Icons.style_outlined,
@@ -94,6 +159,47 @@ class _GlobalClinicalSearchScreenState
       _GlobalSearchFilter.study,
     ),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadHistory();
+  }
+
+  Future<void> _loadHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    final history =
+        prefs.getStringList('global_search_history_v1') ?? const <String>[];
+    if (mounted) {
+      setState(() => _history = history.take(8).toList(growable: false));
+    }
+  }
+
+  Future<void> _saveHistory(String query) async {
+    final normalized = query.trim();
+    if (normalized.length < 2) {
+      return;
+    }
+    final next = <String>[
+      normalized,
+      ..._history.where(
+        (item) => item.toLowerCase() != normalized.toLowerCase(),
+      ),
+    ].take(8).toList(growable: false);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('global_search_history_v1', next);
+    if (mounted) {
+      setState(() => _history = next);
+    }
+  }
+
+  Future<void> _clearHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('global_search_history_v1');
+    if (mounted) {
+      setState(() => _history = const <String>[]);
+    }
+  }
 
   @override
   void dispose() {
@@ -121,6 +227,7 @@ class _GlobalClinicalSearchScreenState
   Future<void> _run(String query) async {
     try {
       final response = await widget.repository.searchMedications(query);
+      await _saveHistory(query);
       if (!mounted || _controller.text.trim() != query) {
         return;
       }
@@ -174,6 +281,42 @@ class _GlobalClinicalSearchScreenState
                 hintText: 'Medicamento, ferramenta ou conteúdo',
               ),
             ),
+            if (_controller.text.trim().isEmpty && _history.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Pesquisas recentes',
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: _clearHistory,
+                    child: const Text('Limpar'),
+                  ),
+                ],
+              ),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _history
+                    .map(
+                      (item) => ActionChip(
+                        label: Text(item),
+                        onPressed: () {
+                          _controller.text = item;
+                          _controller.selection = TextSelection.fromPosition(
+                            TextPosition(offset: item.length),
+                          );
+                          _onChanged(item);
+                          setState(() {});
+                        },
+                      ),
+                    )
+                    .toList(growable: false),
+              ),
+            ],
             const SizedBox(height: 12),
             Wrap(
               spacing: 8,
