@@ -56,12 +56,8 @@ final class LocalMedicationRepository implements MedicationRepository {
     final normalizedQuery = _normalizeSearchTerm(trimmed);
 
     try {
-      final ingredientRows = await database.queryIngredientMatches(
-        normalizedQuery,
-      );
-      final medicationRows = await database.queryMedicationMatches(
-        normalizedQuery,
-      );
+      final ingredientRows = await database.queryIngredientFts(normalizedQuery);
+      final medicationRows = await database.queryMedicationFts(normalizedQuery);
 
       final items = <MedicationSearchResult>[
         ...ingredientRows.map(
