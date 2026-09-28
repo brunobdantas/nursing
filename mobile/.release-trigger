@@ -1,4 +1,5 @@
-nursing-app 1.5.0+7
-cycle 10 administration safety: dilution, infusion time, Y-site incompatibilities
-source-traceable critical-drug seed and infusion prefill
+nursing-app 1.5.1+8
+hotfix structured offline professional leaflets
+max gzip payload compression and byte-level first-sync progress
+SQLite TEXT leaflet sections with native local rendering
 2026-09-28 final
