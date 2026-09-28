@@ -55,7 +55,7 @@ class _ProfessionalLeafletScreenState extends State<ProfessionalLeafletScreen> {
     final root = await getApplicationSupportDirectory();
     final directory = Directory(p.join(root.path, 'professional_leaflets'));
     await directory.create(recursive: true);
-    return File(p.join(directory.path, 'anvisa_' + registration + '.pdf'));
+    return File(p.join(directory.path, 'anvisa_$registration.pdf'));
   }
 
   Future<void> _start({bool forceRefresh = false}) async {
@@ -435,7 +435,7 @@ class _ProfessionalLeafletScreenState extends State<ProfessionalLeafletScreen> {
         final detail = message['message'];
         _fail(
           detail is String && detail.trim().isNotEmpty
-              ? 'Não foi possível obter a bula profissional. ' + detail.trim()
+              ? 'Não foi possível obter a bula profissional. ${detail.trim()}'
               : 'Não foi possível obter a bula profissional na Anvisa.',
         );
         return;
