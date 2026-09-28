@@ -567,15 +567,10 @@ final class MedicationDetailResponse {
               patientCounselingText: _nullableString(
                 leaflet['patient_counseling_text'],
               ),
-              reviewStatus: _string(
-                leaflet['review_status'],
-                'review_status',
-              ),
+              reviewStatus: _string(leaflet['review_status'], 'review_status'),
               relationType:
                   _nullableString(leaflet['relation_type']) ?? 'direct',
-              clinicalVersion: _nullableString(
-                leaflet['clinical_version'],
-              ),
+              clinicalVersion: _nullableString(leaflet['clinical_version']),
             );
           })
           .toList(growable: false),
