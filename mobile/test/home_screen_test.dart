@@ -148,6 +148,46 @@ void main() {
     expect(syncCoordinator.syncCalls, 1);
   });
 
+  testWidgets('home shows byte download progress on first sync', (
+    tester,
+  ) async {
+    const downloaded = 5 * 1024 * 1024;
+    const total = 18 * 1024 * 1024;
+    final downloading = const ClinicalSyncStatus(
+      state: ClinicalSyncState.downloading,
+      hasLocalContent: false,
+      sourceLabel: 'Base clínica pública',
+      downloadedBytes: downloaded,
+      totalBytes: total,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ClinicalTheme.light(),
+        home: HomeScreen(
+          recentRepository: FakeRecentMedicationRepository(),
+          favoriteRepository: FakeFavoriteMedicationRepository(),
+          syncCoordinator: FakeClinicalSyncCoordinator(
+            localStatus: const ClinicalSyncStatus(
+              state: ClinicalSyncState.notDownloaded,
+              hasLocalContent: false,
+            ),
+            syncStatus: downloading,
+            progressStatuses: const <ClinicalSyncStatus>[downloading],
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(find.textContaining('Baixando base:'), findsOneWidget);
+    expect(find.textContaining('5,0 MB / 18,0 MB'), findsOneWidget);
+    final progress = tester.widget<LinearProgressIndicator>(
+      find.byKey(const ValueKey<String>('clinical-sync-progress')),
+    );
+    expect(progress.value, closeTo(5 / 18, 0.0001));
+  });
+
   test('clinical semantic colors exist in light and dark modes', () {
     final light = ClinicalTheme.light().extension<ClinicalSemanticColors>();
     final dark = ClinicalTheme.dark().extension<ClinicalSemanticColors>();
