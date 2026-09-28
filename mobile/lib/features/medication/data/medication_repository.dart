@@ -178,9 +178,8 @@ final class LocalMedicationRepository implements MedicationRepository {
       final ingredientIds = ingredientRows
           .map((row) => _requiredString(row, 'id'))
           .toList(growable: false);
-      final incompatibilityRows = await database.incompatibilitiesForIngredientIds(
-        ingredientIds,
-      );
+      final incompatibilityRows = await database
+          .incompatibilitiesForIngredientIds(ingredientIds);
 
       final ingredients = ingredientRows
           .map(
@@ -309,8 +308,7 @@ final class LocalMedicationRepository implements MedicationRepository {
       resultingTotalVolumeValue: _nullableDecimal(
         row['resulting_total_volume_value'],
       ),
-      resultingTotalVolumeUnit:
-          row['resulting_total_volume_unit'] as String?,
+      resultingTotalVolumeUnit: row['resulting_total_volume_unit'] as String?,
       administrationTimeMinMinutes: _nullableDecimal(
         row['administration_time_min_minutes'],
       ),
@@ -330,9 +328,7 @@ final class LocalMedicationRepository implements MedicationRepository {
     );
   }
 
-  MedicationIncompatibility _incompatibilityFromRow(
-    Map<String, Object?> row,
-  ) {
+  MedicationIncompatibility _incompatibilityFromRow(Map<String, Object?> row) {
     return MedicationIncompatibility(
       id: _requiredString(row, 'id'),
       activeIngredientId: _requiredString(row, 'active_ingredient_id'),
