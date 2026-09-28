@@ -12,10 +12,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 import '../data/medication_models.dart';
 
 class ProfessionalLeafletScreen extends StatefulWidget {
-  const ProfessionalLeafletScreen({
-    required this.medication,
-    super.key,
-  });
+  const ProfessionalLeafletScreen({required this.medication, super.key});
 
   final MedicationDetailResponse medication;
 
@@ -183,7 +180,8 @@ class _ProfessionalLeafletScreenState extends State<ProfessionalLeafletScreen> {
     }
 
     final registrationLiteral = jsonEncode(registration);
-    final script = '''
+    final script =
+        '''
 (async () => {
   const registration = $registrationLiteral;
   const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -342,9 +340,7 @@ class _ProfessionalLeafletScreenState extends State<ProfessionalLeafletScreen> {
       if (decoded is! Map) {
         throw const FormatException();
       }
-      message = decoded.map(
-        (key, value) => MapEntry(key.toString(), value),
-      );
+      message = decoded.map((key, value) => MapEntry(key.toString(), value));
     } catch (_) {
       _fail('A resposta recebida da Anvisa é inválida.');
       return;
@@ -552,10 +548,7 @@ class _ProfessionalLeafletScreenState extends State<ProfessionalLeafletScreen> {
 }
 
 class _LeafletLoadingState extends StatelessWidget {
-  const _LeafletLoadingState({
-    required this.message,
-    required this.progress,
-  });
+  const _LeafletLoadingState({required this.message, required this.progress});
 
   final String message;
   final double? progress;
@@ -599,10 +592,7 @@ class _LeafletLoadingState extends StatelessWidget {
 }
 
 class _LeafletErrorState extends StatelessWidget {
-  const _LeafletErrorState({
-    required this.message,
-    required this.onRetry,
-  });
+  const _LeafletErrorState({required this.message, required this.onRetry});
 
   final String message;
   final VoidCallback onRetry;
@@ -619,10 +609,7 @@ class _LeafletErrorState extends StatelessWidget {
             children: [
               const Icon(Icons.error_outline_rounded, size: 40),
               const SizedBox(height: 14),
-              Text(
-                message,
-                textAlign: TextAlign.center,
-              ),
+              Text(message, textAlign: TextAlign.center),
               const SizedBox(height: 18),
               FilledButton.icon(
                 onPressed: onRetry,
