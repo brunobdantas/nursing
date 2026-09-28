@@ -194,12 +194,45 @@ final class LocalMedicationRepository implements MedicationRepository {
       final presentations = presentationRows
           .map(_presentationFromRow)
           .toList(growable: false);
-      final administrationGuidance = guidanceRows
-          .map(_administrationGuidanceFromRow)
-          .toList(growable: false);
-      final incompatibilities = incompatibilityRows
-          .map(_incompatibilityFromRow)
-          .toList(growable: false);
+      final guidanceByClinicalContent =
+          <String, AdministrationGuidanceDetail>{};
+      for (final row in guidanceRows) {
+        final guidance = _administrationGuidanceFromRow(row);
+        final key = <Object?>[
+          guidance.administrationMethod,
+          guidance.diluentName,
+          guidance.diluentVolumeValue,
+          guidance.diluentVolumeUnit,
+          guidance.resultingTotalVolumeValue,
+          guidance.resultingTotalVolumeUnit,
+          guidance.administrationTimeMinMinutes,
+          guidance.administrationTimeMaxMinutes,
+          guidance.instructionText,
+          guidance.clinicalVersion,
+          guidance.calculatorFormulaId,
+          guidance.calculatorVolumeMl,
+          guidance.calculatorDurationMinutes,
+        ].join('|');
+        guidanceByClinicalContent.putIfAbsent(key, () => guidance);
+      }
+      final administrationGuidance =
+          guidanceByClinicalContent.values.toList(growable: false);
+
+      final incompatibilityByClinicalContent =
+          <String, MedicationIncompatibility>{};
+      for (final row in incompatibilityRows) {
+        final item = _incompatibilityFromRow(row);
+        final key = <Object?>[
+          item.incompatibleIngredientName,
+          item.interactionType,
+          item.severity,
+          item.description,
+          item.clinicalVersion,
+        ].join('|');
+        incompatibilityByClinicalContent.putIfAbsent(key, () => item);
+      }
+      final incompatibilities =
+          incompatibilityByClinicalContent.values.toList(growable: false);
 
       return MedicationDetailResponse(
         id: _requiredString(medication, 'id'),
