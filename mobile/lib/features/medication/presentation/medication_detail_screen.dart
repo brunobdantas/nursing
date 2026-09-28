@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/calculation/calculation_core.dart';
 import '../../../theme/clinical_theme.dart';
 import '../../home/data/favorite_medication_repository.dart';
 import '../../home/data/recent_medication_repository.dart';
@@ -258,6 +259,48 @@ class _MedicationDetailBody extends StatelessWidget {
             _OfficialLeafletSection(medication: medication),
             const SizedBox(height: 24),
             Text(
+              'Preparo & Administração',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 10),
+            if (medication.administrationGuidance.isEmpty)
+              const _ClinicalContentUnavailableCard(
+                message:
+                    'Não há orientação de preparo e administração publicada '
+                    'para este medicamento na base clínica atual.',
+              )
+            else
+              ...medication.administrationGuidance.map(
+                (guidance) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _AdministrationGuidanceCard(
+                    medicationName: medication.displayName,
+                    guidance: guidance,
+                  ),
+                ),
+              ),
+            const SizedBox(height: 16),
+            Text(
+              'Incompatibilidades',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 10),
+            if (medication.incompatibilities.isEmpty)
+              const _ClinicalContentUnavailableCard(
+                message:
+                    'Nenhuma incompatibilidade estruturada foi publicada para '
+                    'este medicamento nesta versão. Ausência de dados não deve '
+                    'ser interpretada como compatibilidade.',
+              )
+            else
+              ...medication.incompatibilities.map(
+                (item) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _IncompatibilityCard(item: item),
+                ),
+              ),
+            const SizedBox(height: 24),
+            Text(
               'Apresentações',
               style: Theme.of(context).textTheme.titleLarge,
             ),
@@ -504,6 +547,243 @@ class _OfficialLeafletSection extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _AdministrationGuidanceCard extends StatelessWidget {
+  const _AdministrationGuidanceCard({
+    required this.medicationName,
+    required this.guidance,
+  });
+
+  final String medicationName;
+  final AdministrationGuidanceDetail guidance;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final canPrefill =
+        guidance.calculatorFormulaId == medInfusionMlHFormulaId &&
+        guidance.calculatorVolumeMl != null;
+
+    final volumeLabel = guidance.diluentVolumeValue == null
+        ? null
+        : '${guidance.diluentVolumeValue} '
+              '${guidance.diluentVolumeUnit ?? 'mL'}';
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.vaccines_outlined),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    guidance.administrationMethod ?? 'Administração',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            if (guidance.diluentName != null) ...[
+              const SizedBox(height: 12),
+              _GuidanceFact(label: 'Diluente', value: guidance.diluentName!),
+            ],
+            if (volumeLabel != null) ...[
+              const SizedBox(height: 8),
+              _GuidanceFact(label: 'Volume', value: volumeLabel),
+            ],
+            const SizedBox(height: 8),
+            _GuidanceFact(
+              label: 'Tempo',
+              value: guidance.infusionTimeLabel,
+            ),
+            const SizedBox(height: 12),
+            Text(guidance.instructionText, style: theme.textTheme.bodyLarge),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children: [
+                if (guidance.sourceName != null)
+                  Chip(
+                    avatar: const Icon(Icons.source_outlined, size: 18),
+                    label: Text(guidance.sourceName!),
+                  ),
+                if (guidance.clinicalVersion != null)
+                  Chip(
+                    avatar: const Icon(Icons.verified_outlined, size: 18),
+                    label: Text(guidance.clinicalVersion!),
+                  ),
+              ],
+            ),
+            if (canPrefill) ...[
+              const SizedBox(height: 12),
+              FilledButton.icon(
+                key: ValueKey<String>('prefill-infusion-${guidance.id}'),
+                onPressed: () {
+                  final uri = Uri(
+                    path: '/calculators/infusion',
+                    queryParameters: <String, String>{
+                      'volumeMl': guidance.calculatorVolumeMl.toString(),
+                      if (guidance.calculatorDurationMinutes != null)
+                        'durationMinutes':
+                            guidance.calculatorDurationMinutes.toString(),
+                      'context':
+                          '$medicationName • preparo referenciado '
+                          '(${guidance.sourceName ?? 'fonte clínica'})',
+                    },
+                  );
+                  context.push(uri.toString());
+                },
+                icon: const Icon(Icons.calculate_outlined),
+                label: const Text('ABRIR INFUSÃO PRÉ-PREENCHIDA'),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _GuidanceFact extends StatelessWidget {
+  const _GuidanceFact({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 92,
+          child: Text(
+            label,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+        Expanded(child: Text(value)),
+      ],
+    );
+  }
+}
+
+class _IncompatibilityCard extends StatelessWidget {
+  const _IncompatibilityCard({required this.item});
+
+  final MedicationIncompatibility item;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final semantic = theme.extension<ClinicalSemanticColors>()!;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: semantic.criticalContainer,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: semantic.critical, width: 2),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.block_rounded,
+            color: semantic.onCriticalContainer,
+            size: 30,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'NÃO COMPATÍVEL EM Y',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: semantic.onCriticalContainer,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  item.incompatibleIngredientName,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: semantic.onCriticalContainer,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  item.description,
+                  style: TextStyle(
+                    color: semantic.onCriticalContainer,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                if (item.sourceName != null) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    'Fonte: ${item.sourceName}',
+                    style: TextStyle(
+                      color: semantic.onCriticalContainer,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ClinicalContentUnavailableCard extends StatelessWidget {
+  const _ClinicalContentUnavailableCard({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final semantic = Theme.of(context).extension<ClinicalSemanticColors>()!;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: semantic.informationContainer,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.info_outline_rounded,
+            color: semantic.onInformationContainer,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(color: semantic.onInformationContainer),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
