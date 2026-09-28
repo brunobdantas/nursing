@@ -181,10 +181,7 @@ INCOMPATIBILITIES: Final = (
     ),
     IncompatibilitySpec(
         source_key="amiodarone",
-        target_exact_names=(
-            "heparina sodica suina",
-            "heparina sodica bovina",
-        ),
+        target_exact_names=("heparina sodica suina",),
         description=(
             "INCOMPATIBILIDADE EM Y: amiodarona em SG 5% forma precipitado com "
             "heparina sódica. Se ambos forem necessários, utilizar linhas "
@@ -194,11 +191,7 @@ INCOMPATIBILITIES: Final = (
     ),
     IncompatibilitySpec(
         source_key="ceftriaxone",
-        target_exact_names=(
-            "cloreto de calcio di-hidratado",
-            "cloreto de calcio diidratado",
-            "cloreto de sodio, cloreto de potassio, cloreto de calcio diidratado, lactato de sodio",
-        ),
+        target_exact_names=("cloreto de calcio di-hidratado",),
         description=(
             "BLOQUEIO EM Y: ceftriaxona não deve ser administrada "
             "simultaneamente com soluções IV contendo cálcio, incluindo "
