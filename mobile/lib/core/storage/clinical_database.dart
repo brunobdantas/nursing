@@ -9,7 +9,7 @@ final class ClinicalDatabase {
   ClinicalDatabase({DatabaseFactory? factory, this.databasePath})
     : _factory = factory ?? databaseFactory;
 
-  static const int schemaVersion = 4;
+  static const int schemaVersion = 5;
   static const String defaultFileName = 'nursing_clinical_v1.db';
   static const String contentVersionKey = 'clinical_content_version';
   static const String lastSyncAtKey = 'clinical_last_sync_at';
@@ -145,6 +145,7 @@ final class ClinicalDatabase {
     ''');
 
     await _createAdministrationTables(db);
+    await _createLeafletTables(db);
     await _ensureSearchIndexes(db);
   }
 
@@ -170,6 +171,9 @@ final class ClinicalDatabase {
     }
     if (oldVersion < 4) {
       await _createAdministrationTables(db);
+    }
+    if (oldVersion < 5) {
+      await _createLeafletTables(db);
     }
   }
 
@@ -227,6 +231,51 @@ final class ClinicalDatabase {
     await db.execute(
       'CREATE INDEX IF NOT EXISTS ix_local_incompatibility_source '
       'ON incompatibility(active_ingredient_id)',
+    );
+  }
+
+  Future<void> _createLeafletTables(DatabaseExecutor db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS professional_leaflet (
+        id TEXT PRIMARY KEY,
+        source_name TEXT NOT NULL,
+        source_document_id TEXT NOT NULL,
+        source_version TEXT NOT NULL,
+        source_language TEXT NOT NULL,
+        source_url TEXT NOT NULL,
+        source_effective_date TEXT,
+        indications_text TEXT,
+        dosage_administration_text TEXT,
+        contraindications_text TEXT,
+        warnings_precautions_text TEXT,
+        adverse_reactions_text TEXT,
+        drug_interactions_text TEXT,
+        specific_populations_text TEXT,
+        overdosage_text TEXT,
+        description_text TEXT,
+        clinical_pharmacology_text TEXT,
+        how_supplied_storage_text TEXT,
+        patient_counseling_text TEXT,
+        review_status TEXT NOT NULL,
+        clinical_version TEXT
+      )
+    ''');
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS ix_local_leaflet_source '
+      'ON professional_leaflet(source_name, source_document_id)',
+    );
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS medication_leaflet_link (
+        medication_product_id TEXT NOT NULL,
+        professional_leaflet_id TEXT NOT NULL,
+        relation_type TEXT NOT NULL,
+        PRIMARY KEY (medication_product_id, professional_leaflet_id)
+      )
+    ''');
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS ix_local_medication_leaflet_product '
+      'ON medication_leaflet_link(medication_product_id)',
     );
   }
 
@@ -336,6 +385,8 @@ final class ClinicalDatabase {
     await db.transaction((txn) async {
       await txn.delete('administration_guidance');
       await txn.delete('incompatibility');
+      await txn.delete('medication_leaflet_link');
+      await txn.delete('professional_leaflet');
       await txn.delete('medication_product_ingredient');
       await txn.delete('presentation');
       await txn.delete('medication_product');
@@ -385,6 +436,44 @@ final class ClinicalDatabase {
         }
       }
       await medicationBatch.commit(noResult: true);
+
+      final leafletBatch = txn.batch();
+      for (final leaflet in release.professionalLeaflets) {
+        leafletBatch.insert('professional_leaflet', <String, Object?>{
+          'id': leaflet.id,
+          'source_name': leaflet.sourceName,
+          'source_document_id': leaflet.sourceDocumentId,
+          'source_version': leaflet.sourceVersion,
+          'source_language': leaflet.sourceLanguage,
+          'source_url': leaflet.sourceUrl,
+          'source_effective_date': leaflet.sourceEffectiveDate,
+          'indications_text': leaflet.indicationsText,
+          'dosage_administration_text': leaflet.dosageAdministrationText,
+          'contraindications_text': leaflet.contraindicationsText,
+          'warnings_precautions_text': leaflet.warningsPrecautionsText,
+          'adverse_reactions_text': leaflet.adverseReactionsText,
+          'drug_interactions_text': leaflet.drugInteractionsText,
+          'specific_populations_text': leaflet.specificPopulationsText,
+          'overdosage_text': leaflet.overdosageText,
+          'description_text': leaflet.descriptionText,
+          'clinical_pharmacology_text': leaflet.clinicalPharmacologyText,
+          'how_supplied_storage_text': leaflet.howSuppliedStorageText,
+          'patient_counseling_text': leaflet.patientCounselingText,
+          'review_status': leaflet.reviewStatus,
+          'clinical_version': leaflet.clinicalVersion,
+        }, conflictAlgorithm: ConflictAlgorithm.abort);
+      }
+      await leafletBatch.commit(noResult: true);
+
+      final leafletLinkBatch = txn.batch();
+      for (final link in release.medicationLeafletLinks) {
+        leafletLinkBatch.insert('medication_leaflet_link', <String, Object?>{
+          'medication_product_id': link.medicationProductId,
+          'professional_leaflet_id': link.professionalLeafletId,
+          'relation_type': link.relationType,
+        }, conflictAlgorithm: ConflictAlgorithm.abort);
+      }
+      await leafletLinkBatch.commit(noResult: true);
 
       final presentationBatch = txn.batch();
       for (final record in release.presentations) {
@@ -712,6 +801,26 @@ final class ClinicalDatabase {
       'WHERE active_ingredient_id IN ($placeholders) '
       'ORDER BY severity ASC, incompatible_ingredient_name COLLATE NOCASE ASC',
       ingredientIds,
+    );
+  }
+
+  Future<List<Map<String, Object?>>> professionalLeafletsForMedication(
+    String medicationId,
+  ) async {
+    final db = await database;
+    return db.rawQuery(
+      '''
+      SELECT
+        l.*,
+        ml.relation_type
+      FROM medication_leaflet_link ml
+      JOIN professional_leaflet l
+        ON l.id = ml.professional_leaflet_id
+      WHERE ml.medication_product_id = ?
+      ORDER BY l.source_name COLLATE NOCASE ASC,
+               l.source_document_id COLLATE NOCASE ASC
+      ''',
+      <Object>[medicationId],
     );
   }
 
