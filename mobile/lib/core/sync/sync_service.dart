@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 
@@ -29,6 +30,8 @@ final class ClinicalSyncStatus {
     this.sourceLabel,
     this.attempt,
     this.maxAttempts,
+    this.downloadedBytes,
+    this.totalBytes,
   });
 
   final ClinicalSyncState state;
@@ -39,6 +42,32 @@ final class ClinicalSyncStatus {
   final String? sourceLabel;
   final int? attempt;
   final int? maxAttempts;
+  final int? downloadedBytes;
+  final int? totalBytes;
+
+  double? get progressFraction {
+    final total = totalBytes;
+    final downloaded = downloadedBytes;
+    if (total == null || total <= 0 || downloaded == null) {
+      return null;
+    }
+    return (downloaded / total).clamp(0, 1);
+  }
+
+  String? get downloadProgressText {
+    if (state != ClinicalSyncState.downloading) {
+      return null;
+    }
+    final downloaded = downloadedBytes;
+    if (downloaded == null) {
+      return null;
+    }
+    final total = totalBytes;
+    if (total != null && total > 0) {
+      return '${_formatBytes(downloaded)} / ${_formatBytes(total)}';
+    }
+    return '${_formatBytes(downloaded)} baixados';
+  }
 
   bool get isBusy =>
       state == ClinicalSyncState.checking ||
@@ -62,6 +91,10 @@ final class ClinicalSyncStatus {
             ? ' • tentativa $attempt/$maxAttempts'
             : '';
         final sourceText = sourceLabel == null ? '' : ' • $sourceLabel';
+        final progressText = downloadProgressText;
+        if (progressText != null) {
+          return 'Baixando base: $progressText$sourceText$attemptText';
+        }
         return 'Baixando base clínica$sourceText$attemptText';
       case ClinicalSyncState.validating:
         return 'Validando integridade da base clínica';
@@ -206,11 +239,12 @@ final class SyncService implements ClinicalSyncCoordinator {
         }
 
         try {
-          final response = await _client
-              .get(endpoint.uri, headers: headers)
-              .timeout(timeout);
+          final request = http.Request('GET', endpoint.uri)
+            ..headers.addAll(headers);
+          final response = await _client.send(request).timeout(timeout);
 
           if (response.statusCode == HttpStatus.notModified) {
+            await response.stream.drain<void>();
             if (!hadLocalContent) {
               lastError =
                   '${endpoint.label} informou que não havia atualização, '
@@ -227,6 +261,7 @@ final class SyncService implements ClinicalSyncCoordinator {
           }
 
           if (response.statusCode != HttpStatus.ok) {
+            await response.stream.drain<void>();
             lastError =
                 '${endpoint.label}: resposta HTTP ${response.statusCode}.';
             if (_isRetryableHttp(response.statusCode) &&
@@ -237,6 +272,44 @@ final class SyncService implements ClinicalSyncCoordinator {
             break;
           }
 
+          final totalBytes =
+              response.contentLength != null && response.contentLength! > 0
+              ? response.contentLength
+              : null;
+          emit(
+            ClinicalSyncStatus(
+              state: ClinicalSyncState.downloading,
+              hasLocalContent: hadLocalContent,
+              contentVersion: currentVersion,
+              lastSyncAt: lastSyncAt,
+              sourceLabel: endpoint.label,
+              attempt: attempt,
+              maxAttempts: maxAttemptsPerEndpoint,
+              downloadedBytes: 0,
+              totalBytes: totalBytes,
+            ),
+          );
+
+          final buffer = BytesBuilder(copy: false);
+          var downloadedBytes = 0;
+          await for (final chunk in response.stream.timeout(timeout)) {
+            buffer.add(chunk);
+            downloadedBytes += chunk.length;
+            emit(
+              ClinicalSyncStatus(
+                state: ClinicalSyncState.downloading,
+                hasLocalContent: hadLocalContent,
+                contentVersion: currentVersion,
+                lastSyncAt: lastSyncAt,
+                sourceLabel: endpoint.label,
+                attempt: attempt,
+                maxAttempts: maxAttemptsPerEndpoint,
+                downloadedBytes: downloadedBytes,
+                totalBytes: totalBytes,
+              ),
+            );
+          }
+
           emit(
             ClinicalSyncStatus(
               state: ClinicalSyncState.validating,
@@ -244,10 +317,12 @@ final class SyncService implements ClinicalSyncCoordinator {
               contentVersion: currentVersion,
               lastSyncAt: lastSyncAt,
               sourceLabel: endpoint.label,
+              downloadedBytes: downloadedBytes,
+              totalBytes: totalBytes,
             ),
           );
 
-          final bodyBytes = response.bodyBytes;
+          final bodyBytes = buffer.takeBytes();
           final decodedBytes =
               bodyBytes.length >= 2 &&
                   bodyBytes[0] == 0x1f &&
@@ -380,4 +455,20 @@ final class SyncService implements ClinicalSyncCoordinator {
       message: message,
     );
   }
+}
+
+String _formatBytes(int bytes) {
+  if (bytes < 1024) {
+    return '$bytes B';
+  }
+  final kib = bytes / 1024;
+  if (kib < 1024) {
+    return '${kib.toStringAsFixed(kib >= 100 ? 0 : 1).replaceAll('.', ',')} KB';
+  }
+  final mib = kib / 1024;
+  if (mib < 1024) {
+    return '${mib.toStringAsFixed(mib >= 100 ? 0 : 1).replaceAll('.', ',')} MB';
+  }
+  final gib = mib / 1024;
+  return '${gib.toStringAsFixed(1).replaceAll('.', ',')} GB';
 }
