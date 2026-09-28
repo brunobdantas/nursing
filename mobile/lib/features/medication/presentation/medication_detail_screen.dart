@@ -256,6 +256,12 @@ class _MedicationDetailBody extends StatelessWidget {
               startCalculationFlow: startCalculationFlow,
             ),
             const SizedBox(height: 24),
+            if (medication.professionalLeaflets.isNotEmpty) ...[
+              _StructuredLeafletSection(
+                leaflets: medication.professionalLeaflets,
+              ),
+              const SizedBox(height: 24),
+            ],
             _OfficialLeafletSection(medication: medication),
             const SizedBox(height: 24),
             Text(
@@ -467,6 +473,104 @@ class _SafetySection extends StatelessWidget {
   }
 }
 
+class _StructuredLeafletSection extends StatelessWidget {
+  const _StructuredLeafletSection({required this.leaflets});
+
+  final List<ProfessionalLeafletDetail> leaflets;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final semantic = theme.extension<ClinicalSemanticColors>()!;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Bula estruturada offline', style: theme.textTheme.titleLarge),
+        const SizedBox(height: 8),
+        Text(
+          'As seções abaixo são lidas diretamente do SQLite local. '
+          'Nenhuma chamada de rede é feita ao abrir a ficha.',
+          style: theme.textTheme.bodyMedium,
+        ),
+        const SizedBox(height: 12),
+        for (final leaflet in leaflets) ...[
+          Container(
+            key: ValueKey<String>('structured-leaflet-${leaflet.id}'),
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: semantic.informationContainer,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.offline_pin_outlined,
+                  color: semantic.onInformationContainer,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    '${leaflet.sourceName} • ${leaflet.sourceLanguage} • '
+                    'versão ${leaflet.sourceVersion}',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: semantic.onInformationContainer,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (leaflet.relationType == 'active_ingredient_reference') ...[
+            const SizedBox(height: 8),
+            Text(
+              'Referência pública vinculada pelo princípio ativo. '
+              'Para diferenças específicas de fabricante/apresentação, '
+              'confira também a fonte regulatória do produto.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+          const SizedBox(height: 8),
+          for (final section in leaflet.sections)
+            Card(
+              margin: const EdgeInsets.only(bottom: 8),
+              clipBehavior: Clip.antiAlias,
+              child: ExpansionTile(
+                key: ValueKey<String>(
+                  'leaflet-section-${leaflet.id}-${section.title}',
+                ),
+                maintainState: false,
+                title: Text(
+                  section.title,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                children: [
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: SelectableText(
+                      section.text,
+                      style: theme.textTheme.bodyMedium,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          const SizedBox(height: 6),
+        ],
+      ],
+    );
+  }
+}
+
+
 class _OfficialLeafletSection extends StatelessWidget {
   const _OfficialLeafletSection({required this.medication});
 
@@ -524,10 +628,10 @@ class _OfficialLeafletSection extends StatelessWidget {
               const SizedBox(height: 10),
               Text(
                 hasLeaflet
-                    ? 'A bula profissional oficial é exibida dentro do '
-                          'aplicativo. No primeiro acesso ela é obtida da '
-                          'Anvisa e armazenada neste aparelho para consultas '
-                          'posteriores, inclusive offline.'
+                    ? 'Use esta opção para consultar a referência oficial da '
+                          'Anvisa do produto quando precisar conferir a bula '
+                          'regulatória específica. O conteúdo estruturado '
+                          'acima permanece disponível offline.'
                     : 'Este registro não possui número Anvisa suficiente para '
                           'localizar automaticamente a bula profissional.',
                 style: theme.textTheme.bodyMedium?.copyWith(
@@ -540,7 +644,7 @@ class _OfficialLeafletSection extends StatelessWidget {
                   key: const ValueKey<String>('open-professional-leaflet'),
                   onPressed: () => _openLeaflet(context),
                   icon: const Icon(Icons.article_outlined),
-                  label: const Text('VER BULA PROFISSIONAL NO APP'),
+                  label: const Text('CONSULTAR FONTE OFICIAL ANVISA'),
                 ),
               ],
             ],
