@@ -9,6 +9,7 @@ on:
       - main
     paths:
       - 'backend/**'
+      - 'scripts/seed_critical_drugs.py'
       - '.github/workflows/clinical_release_publish.yml'
 
 permissions:
@@ -94,7 +95,7 @@ jobs:
         run: python scripts/clinical_curation.py
 
       - name: Seed critical administration guidance
-        run: python scripts/seed_critical_drugs.py
+        run: python ../scripts/seed_critical_drugs.py
 
       - name: Start sync API locally
         shell: bash
