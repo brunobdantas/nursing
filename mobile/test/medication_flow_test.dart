@@ -49,7 +49,12 @@ void main() {
         findsOneWidget,
       );
 
-      await tester.drag(find.byType(ListView), const Offset(0, -420));
+      expect(find.text('Preparo & Administração'), findsOneWidget);
+      expect(find.text('Incompatibilidades'), findsOneWidget);
+      expect(find.text('NÃO COMPATÍVEL EM Y'), findsOneWidget);
+      expect(find.text('Bicarbonato de sódio'), findsOneWidget);
+
+      await tester.ensureVisible(find.text('Ampola 500 mg/mL'));
       await tester.pumpAndSettle();
 
       expect(find.text('Ampola 500 mg/mL'), findsOneWidget);
