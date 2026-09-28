@@ -1,4 +1,4 @@
-name: Format Clinical Workspace
+name: Fix and Format Clinical Workspace
 
 on:
   push:
@@ -23,19 +23,25 @@ jobs:
           flutter-version: '3.47.5'
           cache: true
 
-      - name: Format Flutter sources
+      - name: Resolve dependencies
         working-directory: mobile
-        run: dart format lib test
+        run: flutter pub get
 
-      - name: Commit formatter output when needed
+      - name: Apply analyzer fixes and format
+        working-directory: mobile
+        run: |
+          dart fix --apply
+          dart format lib test
+
+      - name: Commit fixes when needed
         shell: bash
         run: |
           if git diff --quiet -- mobile/lib mobile/test; then
-            echo "No formatting changes."
+            echo "No source changes."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add mobile/lib mobile/test
-          git commit -m "style: format clinical workspace"
+          git commit -m "style: apply analyzer fixes to clinical workspace"
           git push origin HEAD:main
