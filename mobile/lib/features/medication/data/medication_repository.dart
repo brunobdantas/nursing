@@ -172,6 +172,15 @@ final class LocalMedicationRepository implements MedicationRepository {
       final presentationRows = await database.presentationsForMedication(
         normalizedId,
       );
+      final guidanceRows = await database.administrationGuidanceForMedication(
+        normalizedId,
+      );
+      final ingredientIds = ingredientRows
+          .map((row) => _requiredString(row, 'id'))
+          .toList(growable: false);
+      final incompatibilityRows = await database.incompatibilitiesForIngredientIds(
+        ingredientIds,
+      );
 
       final ingredients = ingredientRows
           .map(
@@ -185,6 +194,12 @@ final class LocalMedicationRepository implements MedicationRepository {
 
       final presentations = presentationRows
           .map(_presentationFromRow)
+          .toList(growable: false);
+      final administrationGuidance = guidanceRows
+          .map(_administrationGuidanceFromRow)
+          .toList(growable: false);
+      final incompatibilities = incompatibilityRows
+          .map(_incompatibilityFromRow)
           .toList(growable: false);
 
       return MedicationDetailResponse(
@@ -201,6 +216,8 @@ final class LocalMedicationRepository implements MedicationRepository {
             medication['professional_leaflet_url'] as String?,
         activeIngredients: ingredients,
         presentations: presentations,
+        administrationGuidance: administrationGuidance,
+        incompatibilities: incompatibilities,
       );
     } on MedicationRepositoryException {
       rethrow;
@@ -271,6 +288,69 @@ final class LocalMedicationRepository implements MedicationRepository {
       score: ranked.$2,
       isApproximate: approximate,
       hasCalculationReadyPresentation: hasCalculationReady,
+    );
+  }
+
+  AdministrationGuidanceDetail _administrationGuidanceFromRow(
+    Map<String, Object?> row,
+  ) {
+    return AdministrationGuidanceDetail(
+      id: _requiredString(row, 'id'),
+      presentationId: _requiredString(row, 'presentation_id'),
+      route: RouteSummary(
+        id: _requiredString(row, 'route_id'),
+        code: _requiredString(row, 'route_code'),
+        name: _requiredString(row, 'route_name'),
+      ),
+      administrationMethod: row['administration_method'] as String?,
+      diluentName: row['diluent_name'] as String?,
+      diluentVolumeValue: _nullableDecimal(row['diluent_volume_value']),
+      diluentVolumeUnit: row['diluent_volume_unit'] as String?,
+      resultingTotalVolumeValue: _nullableDecimal(
+        row['resulting_total_volume_value'],
+      ),
+      resultingTotalVolumeUnit:
+          row['resulting_total_volume_unit'] as String?,
+      administrationTimeMinMinutes: _nullableDecimal(
+        row['administration_time_min_minutes'],
+      ),
+      administrationTimeMaxMinutes: _nullableDecimal(
+        row['administration_time_max_minutes'],
+      ),
+      instructionText: _requiredString(row, 'instruction_text'),
+      reviewStatus: _requiredString(row, 'review_status'),
+      clinicalVersion: row['clinical_version'] as String?,
+      sourceName: row['source_name'] as String?,
+      sourceUrl: row['source_url'] as String?,
+      calculatorFormulaId: row['calculator_formula_id'] as String?,
+      calculatorVolumeMl: _nullableDecimal(row['calculator_volume_ml']),
+      calculatorDurationMinutes: _nullableDecimal(
+        row['calculator_duration_minutes'],
+      ),
+    );
+  }
+
+  MedicationIncompatibility _incompatibilityFromRow(
+    Map<String, Object?> row,
+  ) {
+    return MedicationIncompatibility(
+      id: _requiredString(row, 'id'),
+      activeIngredientId: _requiredString(row, 'active_ingredient_id'),
+      incompatibleIngredientId: _requiredString(
+        row,
+        'incompatible_ingredient_id',
+      ),
+      incompatibleIngredientName: _requiredString(
+        row,
+        'incompatible_ingredient_name',
+      ),
+      interactionType: _requiredString(row, 'interaction_type'),
+      severity: _requiredString(row, 'severity'),
+      description: _requiredString(row, 'description'),
+      reviewStatus: _requiredString(row, 'review_status'),
+      clinicalVersion: row['clinical_version'] as String?,
+      sourceName: row['source_name'] as String?,
+      sourceUrl: row['source_url'] as String?,
     );
   }
 
