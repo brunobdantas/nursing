@@ -425,58 +425,50 @@ final class ClinicalDatabase {
 
       final guidanceBatch = txn.batch();
       for (final guidance in release.administrationGuidance) {
-        guidanceBatch.insert(
-          'administration_guidance',
-          <String, Object?>{
-            'id': guidance.id,
-            'medication_product_id': guidance.medicationProductId,
-            'presentation_id': guidance.presentationId,
-            'route_id': guidance.route.id,
-            'route_code': guidance.route.code,
-            'route_name': guidance.route.name,
-            'administration_method': guidance.administrationMethod,
-            'diluent_name': guidance.diluentName,
-            'diluent_volume_value': guidance.diluentVolumeValue,
-            'diluent_volume_unit': guidance.diluentVolumeUnit,
-            'resulting_total_volume_value': guidance.resultingTotalVolumeValue,
-            'resulting_total_volume_unit': guidance.resultingTotalVolumeUnit,
-            'administration_time_min_minutes':
-                guidance.administrationTimeMinMinutes,
-            'administration_time_max_minutes':
-                guidance.administrationTimeMaxMinutes,
-            'instruction_text': guidance.instructionText,
-            'review_status': guidance.reviewStatus,
-            'clinical_version': guidance.clinicalVersion,
-            'source_name': guidance.sourceName,
-            'source_url': guidance.sourceUrl,
-            'calculator_formula_id': guidance.calculatorFormulaId,
-            'calculator_volume_ml': guidance.calculatorVolumeMl,
-            'calculator_duration_minutes': guidance.calculatorDurationMinutes,
-          },
-          conflictAlgorithm: ConflictAlgorithm.abort,
-        );
+        guidanceBatch.insert('administration_guidance', <String, Object?>{
+          'id': guidance.id,
+          'medication_product_id': guidance.medicationProductId,
+          'presentation_id': guidance.presentationId,
+          'route_id': guidance.route.id,
+          'route_code': guidance.route.code,
+          'route_name': guidance.route.name,
+          'administration_method': guidance.administrationMethod,
+          'diluent_name': guidance.diluentName,
+          'diluent_volume_value': guidance.diluentVolumeValue,
+          'diluent_volume_unit': guidance.diluentVolumeUnit,
+          'resulting_total_volume_value': guidance.resultingTotalVolumeValue,
+          'resulting_total_volume_unit': guidance.resultingTotalVolumeUnit,
+          'administration_time_min_minutes':
+              guidance.administrationTimeMinMinutes,
+          'administration_time_max_minutes':
+              guidance.administrationTimeMaxMinutes,
+          'instruction_text': guidance.instructionText,
+          'review_status': guidance.reviewStatus,
+          'clinical_version': guidance.clinicalVersion,
+          'source_name': guidance.sourceName,
+          'source_url': guidance.sourceUrl,
+          'calculator_formula_id': guidance.calculatorFormulaId,
+          'calculator_volume_ml': guidance.calculatorVolumeMl,
+          'calculator_duration_minutes': guidance.calculatorDurationMinutes,
+        }, conflictAlgorithm: ConflictAlgorithm.abort);
       }
       await guidanceBatch.commit(noResult: true);
 
       final incompatibilityBatch = txn.batch();
       for (final item in release.incompatibilities) {
-        incompatibilityBatch.insert(
-          'incompatibility',
-          <String, Object?>{
-            'id': item.id,
-            'active_ingredient_id': item.activeIngredientId,
-            'incompatible_ingredient_id': item.incompatibleIngredientId,
-            'incompatible_ingredient_name': item.incompatibleIngredientName,
-            'interaction_type': item.interactionType,
-            'severity': item.severity,
-            'description': item.description,
-            'review_status': item.reviewStatus,
-            'clinical_version': item.clinicalVersion,
-            'source_name': item.sourceName,
-            'source_url': item.sourceUrl,
-          },
-          conflictAlgorithm: ConflictAlgorithm.abort,
-        );
+        incompatibilityBatch.insert('incompatibility', <String, Object?>{
+          'id': item.id,
+          'active_ingredient_id': item.activeIngredientId,
+          'incompatible_ingredient_id': item.incompatibleIngredientId,
+          'incompatible_ingredient_name': item.incompatibleIngredientName,
+          'interaction_type': item.interactionType,
+          'severity': item.severity,
+          'description': item.description,
+          'review_status': item.reviewStatus,
+          'clinical_version': item.clinicalVersion,
+          'source_name': item.sourceName,
+          'source_url': item.sourceUrl,
+        }, conflictAlgorithm: ConflictAlgorithm.abort);
       }
       await incompatibilityBatch.commit(noResult: true);
 
