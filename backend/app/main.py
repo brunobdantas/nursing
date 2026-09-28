@@ -31,7 +31,7 @@ def create_app(*, database_url: str | None = None) -> FastAPI:
 
     app = FastAPI(
         title="Nursing Clinical API",
-        version="0.8.0",
+        version="0.9.0",
         lifespan=lifespan,
     )
     app.add_middleware(GZipMiddleware, minimum_size=1000, compresslevel=6)
