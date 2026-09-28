@@ -76,6 +76,15 @@ void main() {
           detail.presentations.single.concentration?.denominatorUnit,
           'mL',
         );
+        expect(detail.professionalLeaflets, hasLength(1));
+        expect(
+          detail.professionalLeaflets.single.indicationsText,
+          'Indicação estruturada offline.',
+        );
+        expect(
+          detail.professionalLeaflets.single.relationType,
+          'active_ingredient_reference',
+        );
       },
     );
 
@@ -114,6 +123,7 @@ void main() {
 const String _ingredientId = '22222222-2222-2222-2222-222222222222';
 const String _medicationId = '11111111-1111-1111-1111-111111111111';
 const String _presentationId = '33333333-3333-3333-3333-333333333333';
+const String _leafletId = '66666666-6666-6666-6666-666666666666';
 
 ClinicalDatabase _newDatabase() {
   return ClinicalDatabase(
@@ -179,6 +189,28 @@ ClinicalSyncRelease _sampleRelease() {
           calculationReady: true,
           regulatoryStatus: 'VÁLIDO',
         ),
+      ),
+    ],
+    professionalLeaflets: const <SyncProfessionalLeafletRecord>[
+      SyncProfessionalLeafletRecord(
+        id: _leafletId,
+        sourceName: 'DailyMed / FDA SPL',
+        sourceDocumentId: 'test-set-id',
+        sourceVersion: '7',
+        sourceLanguage: 'en-US',
+        sourceUrl: 'https://example.test/leaflet',
+        reviewStatus: 'public_label_verified',
+        indicationsText: 'Indicação estruturada offline.',
+        dosageAdministrationText: 'Posologia estruturada offline.',
+        contraindicationsText: 'Contraindicação estruturada offline.',
+        clinicalVersion: 'hotfix-1.5.1-test',
+      ),
+    ],
+    medicationLeafletLinks: const <SyncMedicationLeafletLinkRecord>[
+      SyncMedicationLeafletLinkRecord(
+        medicationProductId: _medicationId,
+        professionalLeafletId: _leafletId,
+        relationType: 'active_ingredient_reference',
       ),
     ],
   );
