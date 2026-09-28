@@ -6,7 +6,16 @@ import '../../../core/calculation/calculation_core.dart';
 import '../../../theme/clinical_theme.dart';
 
 class InfusionCalculatorScreen extends StatefulWidget {
-  const InfusionCalculatorScreen({super.key});
+  const InfusionCalculatorScreen({
+    this.initialVolumeMl,
+    this.initialDurationMinutes,
+    this.contextLabel,
+    super.key,
+  });
+
+  final String? initialVolumeMl;
+  final String? initialDurationMinutes;
+  final String? contextLabel;
 
   @override
   State<InfusionCalculatorScreen> createState() =>
@@ -19,6 +28,20 @@ class _InfusionCalculatorScreenState extends State<InfusionCalculatorScreen> {
   TimeUnit _timeUnit = TimeUnit.hours;
   CalculationResult? _result;
   String? _inputError;
+
+  @override
+  void initState() {
+    super.initState();
+    final volume = widget.initialVolumeMl?.trim();
+    final duration = widget.initialDurationMinutes?.trim();
+    if (volume != null && volume.isNotEmpty) {
+      _volumeController.text = volume;
+    }
+    if (duration != null && duration.isNotEmpty) {
+      _timeController.text = duration;
+      _timeUnit = TimeUnit.minutes;
+    }
+  }
 
   @override
   void dispose() {
@@ -75,6 +98,7 @@ class _InfusionCalculatorScreenState extends State<InfusionCalculatorScreen> {
         supportingText:
             'Informe o volume total em mL e o tempo. O resultado é calculado '
             'em mL/h sem arredondamento implícito.',
+        contextLabel: widget.contextLabel,
         volumeController: _volumeController,
         timeController: _timeController,
         timeUnit: _timeUnit,
@@ -226,6 +250,7 @@ class _FluidInputBody extends StatelessWidget {
   const _FluidInputBody({
     required this.heading,
     required this.supportingText,
+    this.contextLabel,
     required this.volumeController,
     required this.timeController,
     required this.timeUnit,
@@ -237,6 +262,7 @@ class _FluidInputBody extends StatelessWidget {
 
   final String heading;
   final String supportingText;
+  final String? contextLabel;
   final TextEditingController volumeController;
   final TextEditingController timeController;
   final TimeUnit timeUnit;
@@ -255,6 +281,32 @@ class _FluidInputBody extends StatelessWidget {
         Text(heading, style: theme.textTheme.headlineSmall),
         const SizedBox(height: 8),
         Text(supportingText, style: theme.textTheme.bodyLarge),
+        if (contextLabel != null && contextLabel!.trim().isNotEmpty) ...[
+          const SizedBox(height: 14),
+          Container(
+            key: const ValueKey<String>('infusion-prefill-context'),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerHigh,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.medication_outlined),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    contextLabel!,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
         const SizedBox(height: 24),
         TextField(
           key: const ValueKey<String>('fluid-volume-field'),
