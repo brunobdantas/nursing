@@ -475,6 +475,14 @@ class AdministrationGuidance(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         nullable=False,
     )
 
+    diluent_name: Mapped[str | None] = mapped_column(String(255))
+    diluent_volume_value: Mapped[Decimal | None] = mapped_column(Numeric(18, 8))
+    diluent_volume_unit: Mapped[str | None] = mapped_column(String(40))
+    resulting_total_volume_value: Mapped[Decimal | None] = mapped_column(
+        Numeric(18, 8)
+    )
+    resulting_total_volume_unit: Mapped[str | None] = mapped_column(String(40))
+
     administration_method: Mapped[str | None] = mapped_column(String(160))
     administration_time_min_seconds: Mapped[int | None] = mapped_column(Integer)
     administration_time_max_seconds: Mapped[int | None] = mapped_column(Integer)
@@ -486,12 +494,68 @@ class AdministrationGuidance(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     reviewed_by: Mapped[str | None] = mapped_column(String(160))
     reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     clinical_version: Mapped[str | None] = mapped_column(String(80))
+    source_name: Mapped[str | None] = mapped_column(String(160))
+    source_url: Mapped[str | None] = mapped_column(String(1000))
+    calculator_formula_id: Mapped[str | None] = mapped_column(String(80))
+    calculator_volume_ml: Mapped[Decimal | None] = mapped_column(Numeric(18, 8))
+    calculator_duration_minutes: Mapped[Decimal | None] = mapped_column(
+        Numeric(18, 8)
+    )
     is_current: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
     presentation: Mapped[Presentation] = relationship(
         back_populates="administration_guidance"
     )
     route: Mapped[Route] = relationship(back_populates="administration_guidance")
+
+
+class Incompatibility(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    __tablename__ = "incompatibility"
+    __table_args__ = (
+        UniqueConstraint(
+            "active_ingredient_id",
+            "incompatible_ingredient_id",
+            "interaction_type",
+            name="uq_incompatibility_pair_type",
+        ),
+        CheckConstraint(
+            "severity IN ('critical', 'major', 'moderate', 'minor', 'unknown')",
+            name="incompatibility_severity_allowed",
+        ),
+        Index("ix_incompatibility_active_ingredient", "active_ingredient_id"),
+        Index(
+            "ix_incompatibility_incompatible_ingredient",
+            "incompatible_ingredient_id",
+        ),
+        Index("ix_incompatibility_review_status", "review_status"),
+        {"schema": "curated"},
+    )
+
+    active_ingredient_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("canonical.active_ingredient.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    incompatible_ingredient_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("canonical.active_ingredient.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    interaction_type: Mapped[str] = mapped_column(
+        String(40), nullable=False, default="y_site"
+    )
+    severity: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="major"
+    )
+    description: Mapped[str] = mapped_column(Text, nullable=False)
+
+    review_status: Mapped[str] = mapped_column(
+        String(30), nullable=False, default="public_label"
+    )
+    reviewed_by: Mapped[str | None] = mapped_column(String(160))
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    clinical_version: Mapped[str | None] = mapped_column(String(80))
+    source_name: Mapped[str | None] = mapped_column(String(160))
+    source_url: Mapped[str | None] = mapped_column(String(1000))
+    is_current: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
 
 class ReconstitutionRule(UUIDPrimaryKeyMixin, TimestampMixin, Base):
