@@ -529,7 +529,6 @@ Decimal? _nullableDecimal(Object? value) {
   return _decimal(value, 'decimal');
 }
 
-
 String _decimalDisplay(Decimal value) {
   final text = value.toString();
   if (!text.contains('.')) {
