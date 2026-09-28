@@ -55,10 +55,8 @@ void main() {
       );
       expect(guidance, hasLength(1));
       expect(guidance.single['calculator_formula_id'], 'MED_INFUSION_ML_H');
-      final incompatibilities =
-          await database.incompatibilitiesForIngredientIds(
-            const <String>['ingredient-1'],
-          );
+      final incompatibilities = await database
+          .incompatibilitiesForIngredientIds(const <String>['ingredient-1']);
       expect(incompatibilities, hasLength(1));
       expect(incompatibilities.single['severity'], 'critical');
 
