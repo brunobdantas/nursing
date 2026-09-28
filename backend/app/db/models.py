@@ -445,6 +445,22 @@ class AdministrationGuidance(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "administration_guidance"
     __table_args__ = (
         CheckConstraint(
+            "diluent_volume_value IS NULL OR diluent_volume_value > 0",
+            name="administration_diluent_volume_positive",
+        ),
+        CheckConstraint(
+            "resulting_total_volume_value IS NULL OR resulting_total_volume_value > 0",
+            name="administration_total_volume_positive",
+        ),
+        CheckConstraint(
+            "calculator_volume_ml IS NULL OR calculator_volume_ml > 0",
+            name="administration_calculator_volume_positive",
+        ),
+        CheckConstraint(
+            "calculator_duration_minutes IS NULL OR calculator_duration_minutes > 0",
+            name="administration_calculator_duration_positive",
+        ),
+        CheckConstraint(
             "administration_time_min_seconds IS NULL OR administration_time_min_seconds >= 0",
             name="min_time_nonnegative",
         ),
