@@ -567,7 +567,7 @@ class _ProfilePage extends StatelessWidget {
         const Card(
           child: ListTile(
             leading: Icon(Icons.verified_user_outlined),
-            title: Text('Nursing 1.5.0'),
+            title: Text('Nursing 1.5.1'),
             subtitle: Text(
               'Apoio à decisão. Não substitui prescrição, protocolo '
               'institucional ou julgamento clínico.',
@@ -681,27 +681,39 @@ class _SyncPill extends StatelessWidget {
         color: Theme.of(context).colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(12),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (busy)
-            const SizedBox.square(
-              dimension: 18,
-              child: CircularProgressIndicator(strokeWidth: 2),
-            )
-          else
-            Icon(
-              current?.hasLocalContent ?? false
-                  ? Icons.offline_pin_outlined
-                  : Icons.cloud_off_outlined,
-              size: 20,
-            ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              current?.displayText ?? 'Verificando base clínica',
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
+          Row(
+            children: [
+              Icon(
+                busy
+                    ? Icons.cloud_download_outlined
+                    : current?.hasLocalContent ?? false
+                    ? Icons.offline_pin_outlined
+                    : Icons.cloud_off_outlined,
+                size: 20,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  current?.displayText ?? 'Verificando base clínica',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
           ),
+          if (busy) ...[
+            const SizedBox(height: 10),
+            LinearProgressIndicator(
+              key: const ValueKey<String>('workspace-sync-progress'),
+              value: current?.state == ClinicalSyncState.downloading
+                  ? current?.progressFraction
+                  : null,
+              minHeight: 7,
+              borderRadius: BorderRadius.circular(99),
+            ),
+          ],
         ],
       ),
     );
