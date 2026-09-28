@@ -2,13 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:url_launcher/url_launcher.dart';
-
 import '../../../theme/clinical_theme.dart';
 import '../../home/data/favorite_medication_repository.dart';
 import '../../home/data/recent_medication_repository.dart';
 import '../data/medication_models.dart';
 import '../data/medication_repository.dart';
+import 'professional_leaflet_screen.dart';
 
 class MedicationDetailScreen extends StatefulWidget {
   const MedicationDetailScreen({
@@ -429,34 +428,20 @@ class _OfficialLeafletSection extends StatelessWidget {
 
   final MedicationDetailResponse medication;
 
-  Future<void> _openLeaflet(BuildContext context) async {
-    final rawUrl = medication.professionalLeafletUrl;
-    if (rawUrl == null) {
-      return;
-    }
-
-    final uri = Uri.tryParse(rawUrl);
-    if (uri == null || uri.scheme != 'https') {
-      return;
-    }
-
-    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (!opened && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Não foi possível abrir o Bulário da Anvisa neste dispositivo.',
-          ),
-        ),
-      );
-    }
+  void _openLeaflet(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ProfessionalLeafletScreen(medication: medication),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final semantic = theme.extension<ClinicalSemanticColors>()!;
-    final hasLeaflet = medication.professionalLeafletUrl != null;
+    final registration = medication.anvisaRegistrationNumber?.trim();
+    final hasLeaflet = registration != null && registration.isNotEmpty;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -495,11 +480,12 @@ class _OfficialLeafletSection extends StatelessWidget {
               const SizedBox(height: 10),
               Text(
                 hasLeaflet
-                    ? 'A bula profissional completa é aberta diretamente no '
-                          'Bulário Eletrônico oficial da Anvisa pelo número de '
-                          'registro. Requer conexão com a internet.'
-                    : 'Não foi possível construir o endereço oficial da bula '
-                          'para este registro.',
+                    ? 'A bula profissional oficial é exibida dentro do '
+                          'aplicativo. No primeiro acesso ela é obtida da '
+                          'Anvisa e armazenada neste aparelho para consultas '
+                          'posteriores, inclusive offline.'
+                    : 'Este registro não possui número Anvisa suficiente para '
+                          'localizar automaticamente a bula profissional.',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: semantic.onInformationContainer,
                 ),
@@ -509,8 +495,8 @@ class _OfficialLeafletSection extends StatelessWidget {
                 FilledButton.icon(
                   key: const ValueKey<String>('open-professional-leaflet'),
                   onPressed: () => _openLeaflet(context),
-                  icon: const Icon(Icons.open_in_new_rounded),
-                  label: const Text('ABRIR BULA PROFISSIONAL'),
+                  icon: const Icon(Icons.article_outlined),
+                  label: const Text('VER BULA PROFISSIONAL NO APP'),
                 ),
               ],
             ],
