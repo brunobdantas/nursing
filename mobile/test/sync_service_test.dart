@@ -59,10 +59,18 @@ void main() {
           .incompatibilitiesForIngredientIds(const <String>['ingredient-1']);
       expect(incompatibilities, hasLength(1));
       expect(incompatibilities.single['severity'], 'critical');
-      final leaflets = await database.professionalLeafletsForMedication('med-1');
+      final leaflets = await database.professionalLeafletsForMedication(
+        'med-1',
+      );
       expect(leaflets, hasLength(1));
-      expect(leaflets.single['indications_text'], 'Indicação estruturada de teste.');
-      expect(leaflets.single['dosage_administration_text'], 'Posologia estruturada de teste.');
+      expect(
+        leaflets.single['indications_text'],
+        'Indicação estruturada de teste.',
+      );
+      expect(
+        leaflets.single['dosage_administration_text'],
+        'Posologia estruturada de teste.',
+      );
       expect(leaflets.single['relation_type'], 'active_ingredient_reference');
 
       final second = await service.syncIfNeeded();
