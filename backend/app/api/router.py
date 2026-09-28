@@ -5,6 +5,7 @@ import json
 import unicodedata
 from collections.abc import AsyncIterator
 from datetime import datetime, timezone
+from decimal import Decimal
 from typing import Annotated
 from uuid import UUID
 
@@ -25,12 +26,16 @@ from app.api.schemas import (
     SearchMatchType,
     SearchResult,
     SyncActiveIngredient,
+    SyncAdministrationGuidance,
     SyncContentResponse,
+    SyncIncompatibility,
     SyncMedicationProduct,
     SyncPresentation,
 )
 from app.db.models import (
     ActiveIngredient,
+    AdministrationGuidance,
+    Incompatibility,
     MedicationProduct,
     MedicationProductIngredient,
     Presentation,
@@ -251,12 +256,66 @@ async def get_sync_content(
     )
 
     products = list((await session.scalars(product_stmt)).unique().all())
-    referenced_ingredient_ids = {
+
+    product_ingredient_ids = {
         link.active_ingredient.id
         for product in products
         for link in product.ingredient_links
         if link.active_ingredient.is_active
     }
+    active_presentation_ids = {
+        presentation.id
+        for product in products
+        for presentation in product.presentations
+        if presentation.is_active
+    }
+
+    if active_presentation_ids:
+        guidance_stmt = (
+            select(AdministrationGuidance)
+            .options(selectinload(AdministrationGuidance.route))
+            .where(
+                AdministrationGuidance.is_current.is_(True),
+                AdministrationGuidance.presentation_id.in_(active_presentation_ids),
+                AdministrationGuidance.review_status.in_(
+                    ("approved", "public_label_verified", "automated_validated")
+                ),
+            )
+            .order_by(
+                AdministrationGuidance.presentation_id,
+                AdministrationGuidance.id,
+            )
+        )
+        guidance_rows = list((await session.scalars(guidance_stmt)).all())
+    else:
+        guidance_rows = []
+
+    if product_ingredient_ids:
+        incompatibility_stmt = (
+            select(Incompatibility)
+            .where(
+                Incompatibility.is_current.is_(True),
+                Incompatibility.active_ingredient_id.in_(product_ingredient_ids),
+                Incompatibility.review_status.in_(
+                    ("approved", "public_label_verified", "automated_validated")
+                ),
+            )
+            .order_by(
+                Incompatibility.active_ingredient_id,
+                Incompatibility.incompatible_ingredient_id,
+                Incompatibility.id,
+            )
+        )
+        incompatibility_rows = list(
+            (await session.scalars(incompatibility_stmt)).all()
+        )
+    else:
+        incompatibility_rows = []
+
+    referenced_ingredient_ids = set(product_ingredient_ids)
+    referenced_ingredient_ids.update(
+        item.incompatible_ingredient_id for item in incompatibility_rows
+    )
     if referenced_ingredient_ids:
         ingredient_stmt = (
             select(ActiveIngredient)
@@ -280,8 +339,79 @@ async def get_sync_content(
         for ingredient in ingredients
     ]
 
+    ingredient_by_id = {ingredient.id: ingredient for ingredient in ingredients}
+    presentation_to_product_id = {
+        presentation.id: product.id
+        for product in products
+        for presentation in product.presentations
+        if presentation.is_active
+    }
+
     sync_medications: list[SyncMedicationProduct] = []
     sync_presentations: list[SyncPresentation] = []
+    sync_guidance: list[SyncAdministrationGuidance] = []
+    sync_incompatibilities: list[SyncIncompatibility] = []
+
+    for row in guidance_rows:
+        product_id = presentation_to_product_id.get(row.presentation_id)
+        if product_id is None:
+            continue
+        sync_guidance.append(
+            SyncAdministrationGuidance(
+                id=row.id,
+                medication_product_id=product_id,
+                presentation_id=row.presentation_id,
+                route=RouteSummary(
+                    id=row.route.id,
+                    code=row.route.code,
+                    name=row.route.name,
+                ),
+                administration_method=row.administration_method,
+                diluent_name=row.diluent_name,
+                diluent_volume_value=row.diluent_volume_value,
+                diluent_volume_unit=row.diluent_volume_unit,
+                resulting_total_volume_value=row.resulting_total_volume_value,
+                resulting_total_volume_unit=row.resulting_total_volume_unit,
+                administration_time_min_minutes=(
+                    Decimal(row.administration_time_min_seconds) / Decimal(60)
+                    if row.administration_time_min_seconds is not None
+                    else None
+                ),
+                administration_time_max_minutes=(
+                    Decimal(row.administration_time_max_seconds) / Decimal(60)
+                    if row.administration_time_max_seconds is not None
+                    else None
+                ),
+                instruction_text=row.instruction_text,
+                review_status=row.review_status,
+                clinical_version=row.clinical_version,
+                source_name=row.source_name,
+                source_url=row.source_url,
+                calculator_formula_id=row.calculator_formula_id,
+                calculator_volume_ml=row.calculator_volume_ml,
+                calculator_duration_minutes=row.calculator_duration_minutes,
+            )
+        )
+
+    for row in incompatibility_rows:
+        incompatible = ingredient_by_id.get(row.incompatible_ingredient_id)
+        if incompatible is None:
+            continue
+        sync_incompatibilities.append(
+            SyncIncompatibility(
+                id=row.id,
+                active_ingredient_id=row.active_ingredient_id,
+                incompatible_ingredient_id=row.incompatible_ingredient_id,
+                incompatible_ingredient_name=incompatible.canonical_name,
+                interaction_type=row.interaction_type,
+                severity=row.severity,
+                description=row.description,
+                review_status=row.review_status,
+                clinical_version=row.clinical_version,
+                source_name=row.source_name,
+                source_url=row.source_url,
+            )
+        )
 
     for product in products:
         ingredient_ids = [
@@ -386,6 +516,12 @@ async def get_sync_content(
         "presentations": [
             item.model_dump(mode="json") for item in sync_presentations
         ],
+        "administration_guidance": [
+            item.model_dump(mode="json") for item in sync_guidance
+        ],
+        "incompatibilities": [
+            item.model_dump(mode="json") for item in sync_incompatibilities
+        ],
     }
     release_bytes = json.dumps(
         release_basis,
@@ -415,6 +551,8 @@ async def get_sync_content(
         active_ingredients=sync_ingredients,
         medications=sync_medications,
         presentations=sync_presentations,
+        administration_guidance=sync_guidance,
+        incompatibilities=sync_incompatibilities,
     )
 
 
