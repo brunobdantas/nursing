@@ -52,13 +52,15 @@ class _ClinicalAreaHubScreenState extends State<ClinicalAreaHubScreen> {
   @override
   Widget build(BuildContext context) {
     final query = _search.text.trim().toLowerCase();
-    final groups = widget.groups.entries.where((entry) {
-      if (query.isEmpty) {
-        return true;
-      }
-      return entry.key.toLowerCase().contains(query) ||
-          entry.value.any((topic) => topic.toLowerCase().contains(query));
-    }).toList(growable: false);
+    final groups = widget.groups.entries
+        .where((entry) {
+          if (query.isEmpty) {
+            return true;
+          }
+          return entry.key.toLowerCase().contains(query) ||
+              entry.value.any((topic) => topic.toLowerCase().contains(query));
+        })
+        .toList(growable: false);
 
     final selectedGroup = _selectedGroup;
     final visibleGroups = query.isNotEmpty
@@ -72,9 +74,7 @@ class _ClinicalAreaHubScreenState extends State<ClinicalAreaHubScreen> {
         title: Text(widget.title),
         actions: [
           if (widget.restricted)
-            Icon(
-              locked ? Icons.lock_outline_rounded : Icons.lock_open_rounded,
-            ),
+            Icon(locked ? Icons.lock_outline_rounded : Icons.lock_open_rounded),
           const SizedBox(width: 12),
         ],
       ),
@@ -422,10 +422,7 @@ class _AccessAndContentScreenState extends State<AccessAndContentScreen> {
 }
 
 class _EditorialBanner extends StatelessWidget {
-  const _EditorialBanner({
-    required this.restricted,
-    required this.locked,
-  });
+  const _EditorialBanner({required this.restricted, required this.locked});
 
   final bool restricted;
   final bool locked;

@@ -616,7 +616,6 @@ final class ClinicalDatabase {
   }
 }
 
-
 String _ftsPrefixQuery(String value) {
   final terms = value
       .trim()
