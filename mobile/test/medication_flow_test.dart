@@ -49,12 +49,29 @@ void main() {
         findsOneWidget,
       );
 
+      await tester.scrollUntilVisible(
+        find.text('Preparo & Administração'),
+        220,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
       expect(find.text('Preparo & Administração'), findsOneWidget);
+
+      await tester.scrollUntilVisible(
+        find.text('Incompatibilidades'),
+        220,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
       expect(find.text('Incompatibilidades'), findsOneWidget);
       expect(find.text('NÃO COMPATÍVEL EM Y'), findsOneWidget);
       expect(find.text('Bicarbonato de sódio'), findsOneWidget);
 
-      await tester.ensureVisible(find.text('Ampola 500 mg/mL'));
+      await tester.scrollUntilVisible(
+        find.text('Ampola 500 mg/mL'),
+        220,
+        scrollable: find.byType(Scrollable).first,
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('Ampola 500 mg/mL'), findsOneWidget);
