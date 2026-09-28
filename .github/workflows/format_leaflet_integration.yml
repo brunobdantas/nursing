@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
     paths:
+      - 'mobile/lib/**'
+      - 'mobile/test/**'
       - '.github/workflows/format_leaflet_integration.yml'
 
 permissions:
