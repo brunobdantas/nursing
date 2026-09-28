@@ -269,6 +269,10 @@ class MedicationProduct(UUIDPrimaryKeyMixin, TimestampMixin, Base):
         back_populates="medication_product",
         cascade="all, delete-orphan",
     )
+    leaflet_links: Mapped[list["MedicationLeafletLink"]] = relationship(
+        back_populates="medication_product",
+        cascade="all, delete-orphan",
+    )
 
 
 class MedicationProductIngredient(TimestampMixin, Base):
@@ -439,6 +443,95 @@ class PresentationRoute(TimestampMixin, Base):
 # CURATED LAYER
 # Purpose: clinically reviewed operational knowledge used by the app.
 # =============================================================================
+
+
+class ProfessionalLeaflet(UUIDPrimaryKeyMixin, TimestampMixin, Base):
+    """Structured public professional-label content distributed for offline use."""
+
+    __tablename__ = "professional_leaflet"
+    __table_args__ = (
+        UniqueConstraint(
+            "source_name",
+            "source_document_id",
+            "source_version",
+            name="uq_professional_leaflet_source_version",
+        ),
+        Index("ix_professional_leaflet_source_document", "source_document_id"),
+        Index("ix_professional_leaflet_review_status", "review_status"),
+        {"schema": "curated"},
+    )
+
+    source_name: Mapped[str] = mapped_column(String(160), nullable=False)
+    source_document_id: Mapped[str] = mapped_column(String(120), nullable=False)
+    source_version: Mapped[str] = mapped_column(String(80), nullable=False)
+    source_language: Mapped[str] = mapped_column(
+        String(16), nullable=False, default="en-US"
+    )
+    source_url: Mapped[str] = mapped_column(String(1000), nullable=False)
+    source_effective_date: Mapped[str | None] = mapped_column(String(32))
+
+    indications_text: Mapped[str | None] = mapped_column(Text)
+    dosage_administration_text: Mapped[str | None] = mapped_column(Text)
+    contraindications_text: Mapped[str | None] = mapped_column(Text)
+    warnings_precautions_text: Mapped[str | None] = mapped_column(Text)
+    adverse_reactions_text: Mapped[str | None] = mapped_column(Text)
+    drug_interactions_text: Mapped[str | None] = mapped_column(Text)
+    specific_populations_text: Mapped[str | None] = mapped_column(Text)
+    overdosage_text: Mapped[str | None] = mapped_column(Text)
+    description_text: Mapped[str | None] = mapped_column(Text)
+    clinical_pharmacology_text: Mapped[str | None] = mapped_column(Text)
+    how_supplied_storage_text: Mapped[str | None] = mapped_column(Text)
+    patient_counseling_text: Mapped[str | None] = mapped_column(Text)
+
+    review_status: Mapped[str] = mapped_column(
+        String(30), nullable=False, default="public_label_verified"
+    )
+    reviewed_by: Mapped[str | None] = mapped_column(String(160))
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    clinical_version: Mapped[str | None] = mapped_column(String(80))
+    is_current: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+
+    medication_links: Mapped[list["MedicationLeafletLink"]] = relationship(
+        back_populates="professional_leaflet",
+        cascade="all, delete-orphan",
+    )
+
+
+class MedicationLeafletLink(TimestampMixin, Base):
+    """Deduplicating link between a canonical product and a public label document."""
+
+    __tablename__ = "medication_leaflet_link"
+    __table_args__ = (
+        Index("ix_medication_leaflet_link_product", "medication_product_id"),
+        Index("ix_medication_leaflet_link_leaflet", "professional_leaflet_id"),
+        Index("ix_medication_leaflet_link_review_status", "review_status"),
+        {"schema": "curated"},
+    )
+
+    medication_product_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("canonical.medication_product.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    professional_leaflet_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("curated.professional_leaflet.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    relation_type: Mapped[str] = mapped_column(
+        String(40), nullable=False, default="active_ingredient_reference"
+    )
+    review_status: Mapped[str] = mapped_column(
+        String(30), nullable=False, default="public_label_verified"
+    )
+    reviewed_by: Mapped[str | None] = mapped_column(String(160))
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    is_current: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+
+    medication_product: Mapped[MedicationProduct] = relationship(
+        back_populates="leaflet_links"
+    )
+    professional_leaflet: Mapped[ProfessionalLeaflet] = relationship(
+        back_populates="medication_links"
+    )
 
 
 class AdministrationGuidance(UUIDPrimaryKeyMixin, TimestampMixin, Base):
