@@ -9,7 +9,7 @@ final class ClinicalDatabase {
   ClinicalDatabase({DatabaseFactory? factory, this.databasePath})
     : _factory = factory ?? databaseFactory;
 
-  static const int schemaVersion = 2;
+  static const int schemaVersion = 3;
   static const String defaultFileName = 'nursing_clinical_v1.db';
   static const String contentVersionKey = 'clinical_content_version';
   static const String lastSyncAtKey = 'clinical_last_sync_at';
@@ -143,6 +143,8 @@ final class ClinicalDatabase {
         created_at TEXT NOT NULL
       )
     ''');
+
+    await _ensureSearchIndexes(db);
   }
 
   Future<void> _upgradeSchema(
@@ -160,6 +162,69 @@ final class ClinicalDatabase {
       await db.execute(
         'ALTER TABLE medication_product ADD COLUMN professional_leaflet_url TEXT',
       );
+    }
+    if (oldVersion < 3) {
+      await _ensureSearchIndexes(db);
+      await _rebuildSearchIndexes(db);
+    }
+  }
+
+  Future<void> _ensureSearchIndexes(DatabaseExecutor db) async {
+    try {
+      await db.execute('''
+        CREATE VIRTUAL TABLE IF NOT EXISTS medication_search_fts USING fts5(
+          id UNINDEXED,
+          brand_name,
+          generic_name,
+          normalized_brand_name,
+          normalized_generic_name
+        )
+      ''');
+      await db.execute('''
+        CREATE VIRTUAL TABLE IF NOT EXISTS ingredient_search_fts USING fts5(
+          id UNINDEXED,
+          canonical_name,
+          normalized_name
+        )
+      ''');
+    } catch (_) {
+      // Some SQLite builds may not expose FTS5. Search methods fail over
+      // to indexed LIKE queries so clinical lookup remains available.
+    }
+  }
+
+  Future<void> _rebuildSearchIndexes(DatabaseExecutor db) async {
+    try {
+      await _ensureSearchIndexes(db);
+      await db.delete('medication_search_fts');
+      await db.rawInsert('''
+        INSERT INTO medication_search_fts(
+          id,
+          brand_name,
+          generic_name,
+          normalized_brand_name,
+          normalized_generic_name
+        )
+        SELECT
+          id,
+          COALESCE(brand_name, ''),
+          generic_name,
+          COALESCE(normalized_brand_name, ''),
+          normalized_generic_name
+        FROM medication_product
+      ''');
+      await db.delete('ingredient_search_fts');
+      await db.rawInsert('''
+        INSERT INTO ingredient_search_fts(
+          id,
+          canonical_name,
+          normalized_name
+        )
+        SELECT id, canonical_name, normalized_name
+        FROM active_ingredient
+      ''');
+    } catch (_) {
+      // FTS is an optimization only. The canonical tables remain usable.
     }
   }
 
@@ -295,6 +360,8 @@ final class ClinicalDatabase {
       }
       await presentationBatch.commit(noResult: true);
 
+      await _rebuildSearchIndexes(txn);
+
       final now = DateTime.now().toUtc().toIso8601String();
       await txn.insert('sync_metadata', <String, Object?>{
         'key': contentVersionKey,
@@ -305,6 +372,65 @@ final class ClinicalDatabase {
         'value': now,
       }, conflictAlgorithm: ConflictAlgorithm.replace);
     });
+  }
+
+  Future<List<Map<String, Object?>>> queryIngredientFts(
+    String normalizedQuery, {
+    int limit = 30,
+  }) async {
+    final db = await database;
+    final match = _ftsPrefixQuery(normalizedQuery);
+    if (match.isEmpty) {
+      return const <Map<String, Object?>>[];
+    }
+    try {
+      return await db.rawQuery(
+        '''
+        SELECT ai.*
+        FROM ingredient_search_fts f
+        JOIN active_ingredient ai ON ai.id = f.id
+        WHERE ingredient_search_fts MATCH ?
+        ORDER BY bm25(ingredient_search_fts)
+        LIMIT ?
+        ''',
+        <Object>[match, limit],
+      );
+    } catch (_) {
+      return queryIngredientMatches(normalizedQuery, limit: limit);
+    }
+  }
+
+  Future<List<Map<String, Object?>>> queryMedicationFts(
+    String normalizedQuery, {
+    int limit = 30,
+  }) async {
+    final db = await database;
+    final match = _ftsPrefixQuery(normalizedQuery);
+    if (match.isEmpty) {
+      return const <Map<String, Object?>>[];
+    }
+    try {
+      return await db.rawQuery(
+        '''
+        SELECT
+          m.*,
+          EXISTS (
+            SELECT 1
+            FROM presentation p
+            WHERE p.medication_product_id = m.id
+              AND p.calculation_ready = 1
+          ) AS has_calculation_ready_presentation
+        FROM medication_search_fts f
+        JOIN medication_product m ON m.id = f.id
+        WHERE medication_search_fts MATCH ?
+        ORDER BY bm25(medication_search_fts)
+        LIMIT ?
+        ''',
+        <Object>[match, limit],
+      );
+    } catch (_) {
+      return queryMedicationMatches(normalizedQuery, limit: limit);
+    }
   }
 
   Future<List<Map<String, Object?>>> queryIngredientMatches(
@@ -488,4 +614,16 @@ final class ClinicalDatabase {
       ORDER BY f.created_at DESC
     ''');
   }
+}
+
+
+String _ftsPrefixQuery(String value) {
+  final terms = value
+      .trim()
+      .split(RegExp(r'\s+'))
+      .map((term) => term.replaceAll('"', '""'))
+      .where((term) => term.isNotEmpty)
+      .map((term) => '"$term"*')
+      .toList(growable: false);
+  return terms.join(' AND ');
 }
