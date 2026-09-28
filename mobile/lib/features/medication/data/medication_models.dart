@@ -374,6 +374,89 @@ final class MedicationIncompatibility {
   bool get isCritical => severity.toLowerCase() == 'critical';
 }
 
+final class ProfessionalLeafletSection {
+  const ProfessionalLeafletSection({required this.title, required this.text});
+
+  final String title;
+  final String text;
+}
+
+final class ProfessionalLeafletDetail {
+  const ProfessionalLeafletDetail({
+    required this.id,
+    required this.sourceName,
+    required this.sourceDocumentId,
+    required this.sourceVersion,
+    required this.sourceLanguage,
+    required this.sourceUrl,
+    required this.reviewStatus,
+    required this.relationType,
+    this.sourceEffectiveDate,
+    this.indicationsText,
+    this.dosageAdministrationText,
+    this.contraindicationsText,
+    this.warningsPrecautionsText,
+    this.adverseReactionsText,
+    this.drugInteractionsText,
+    this.specificPopulationsText,
+    this.overdosageText,
+    this.descriptionText,
+    this.clinicalPharmacologyText,
+    this.howSuppliedStorageText,
+    this.patientCounselingText,
+    this.clinicalVersion,
+  });
+
+  final String id;
+  final String sourceName;
+  final String sourceDocumentId;
+  final String sourceVersion;
+  final String sourceLanguage;
+  final String sourceUrl;
+  final String? sourceEffectiveDate;
+  final String? indicationsText;
+  final String? dosageAdministrationText;
+  final String? contraindicationsText;
+  final String? warningsPrecautionsText;
+  final String? adverseReactionsText;
+  final String? drugInteractionsText;
+  final String? specificPopulationsText;
+  final String? overdosageText;
+  final String? descriptionText;
+  final String? clinicalPharmacologyText;
+  final String? howSuppliedStorageText;
+  final String? patientCounselingText;
+  final String reviewStatus;
+  final String relationType;
+  final String? clinicalVersion;
+
+  List<ProfessionalLeafletSection> get sections {
+    final values = <(String, String?)>[
+      ('Indicações', indicationsText),
+      ('Posologia e administração', dosageAdministrationText),
+      ('Contraindicações', contraindicationsText),
+      ('Advertências e precauções', warningsPrecautionsText),
+      ('Reações adversas', adverseReactionsText),
+      ('Interações medicamentosas', drugInteractionsText),
+      ('Uso em populações específicas', specificPopulationsText),
+      ('Superdose', overdosageText),
+      ('Descrição', descriptionText),
+      ('Farmacologia clínica', clinicalPharmacologyText),
+      ('Apresentação, conservação e armazenamento', howSuppliedStorageText),
+      ('Orientação ao paciente', patientCounselingText),
+    ];
+    return values
+        .where((entry) => entry.$2 != null && entry.$2!.trim().isNotEmpty)
+        .map(
+          (entry) => ProfessionalLeafletSection(
+            title: entry.$1,
+            text: entry.$2!.trim(),
+          ),
+        )
+        .toList(growable: false);
+  }
+}
+
 final class MedicationDetailResponse {
   const MedicationDetailResponse({
     required this.id,
@@ -382,6 +465,7 @@ final class MedicationDetailResponse {
     required this.presentations,
     this.administrationGuidance = const <AdministrationGuidanceDetail>[],
     this.incompatibilities = const <MedicationIncompatibility>[],
+    this.professionalLeaflets = const <ProfessionalLeafletDetail>[],
     this.brandName,
     this.anvisaRegistrationNumber,
     this.manufacturerName,
@@ -394,11 +478,16 @@ final class MedicationDetailResponse {
   factory MedicationDetailResponse.fromJson(Map<String, dynamic> json) {
     final rawIngredients = json['active_ingredients'];
     final rawPresentations = json['presentations'];
+    final rawProfessionalLeaflets =
+        json['professional_leaflets'] ?? const <dynamic>[];
     if (rawIngredients is! List<dynamic>) {
       throw const FormatException('active_ingredients must be a list.');
     }
     if (rawPresentations is! List<dynamic>) {
       throw const FormatException('presentations must be a list.');
+    }
+    if (rawProfessionalLeaflets is! List<dynamic>) {
+      throw const FormatException('professional_leaflets must be a list.');
     }
 
     return MedicationDetailResponse(
@@ -426,6 +515,70 @@ final class MedicationDetailResponse {
                 PresentationDetail.fromJson(_map(item, 'presentations[]')),
           )
           .toList(growable: false),
+      professionalLeaflets: rawProfessionalLeaflets
+          .map((item) {
+            final leaflet = _map(item, 'professional_leaflets[]');
+            return ProfessionalLeafletDetail(
+              id: _string(leaflet['id'], 'id'),
+              sourceName: _string(leaflet['source_name'], 'source_name'),
+              sourceDocumentId: _string(
+                leaflet['source_document_id'],
+                'source_document_id',
+              ),
+              sourceVersion: _string(
+                leaflet['source_version'],
+                'source_version',
+              ),
+              sourceLanguage: _string(
+                leaflet['source_language'],
+                'source_language',
+              ),
+              sourceUrl: _string(leaflet['source_url'], 'source_url'),
+              sourceEffectiveDate: _nullableString(
+                leaflet['source_effective_date'],
+              ),
+              indicationsText: _nullableString(leaflet['indications_text']),
+              dosageAdministrationText: _nullableString(
+                leaflet['dosage_administration_text'],
+              ),
+              contraindicationsText: _nullableString(
+                leaflet['contraindications_text'],
+              ),
+              warningsPrecautionsText: _nullableString(
+                leaflet['warnings_precautions_text'],
+              ),
+              adverseReactionsText: _nullableString(
+                leaflet['adverse_reactions_text'],
+              ),
+              drugInteractionsText: _nullableString(
+                leaflet['drug_interactions_text'],
+              ),
+              specificPopulationsText: _nullableString(
+                leaflet['specific_populations_text'],
+              ),
+              overdosageText: _nullableString(leaflet['overdosage_text']),
+              descriptionText: _nullableString(leaflet['description_text']),
+              clinicalPharmacologyText: _nullableString(
+                leaflet['clinical_pharmacology_text'],
+              ),
+              howSuppliedStorageText: _nullableString(
+                leaflet['how_supplied_storage_text'],
+              ),
+              patientCounselingText: _nullableString(
+                leaflet['patient_counseling_text'],
+              ),
+              reviewStatus: _string(
+                leaflet['review_status'],
+                'review_status',
+              ),
+              relationType:
+                  _nullableString(leaflet['relation_type']) ?? 'direct',
+              clinicalVersion: _nullableString(
+                leaflet['clinical_version'],
+              ),
+            );
+          })
+          .toList(growable: false),
     );
   }
 
@@ -442,6 +595,7 @@ final class MedicationDetailResponse {
   final List<PresentationDetail> presentations;
   final List<AdministrationGuidanceDetail> administrationGuidance;
   final List<MedicationIncompatibility> incompatibilities;
+  final List<ProfessionalLeafletDetail> professionalLeaflets;
 
   String get displayName => brandName ?? genericName;
 
