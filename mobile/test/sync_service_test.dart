@@ -59,6 +59,11 @@ void main() {
           .incompatibilitiesForIngredientIds(const <String>['ingredient-1']);
       expect(incompatibilities, hasLength(1));
       expect(incompatibilities.single['severity'], 'critical');
+      final leaflets = await database.professionalLeafletsForMedication('med-1');
+      expect(leaflets, hasLength(1));
+      expect(leaflets.single['indications_text'], 'Indicação estruturada de teste.');
+      expect(leaflets.single['dosage_administration_text'], 'Posologia estruturada de teste.');
+      expect(leaflets.single['relation_type'], 'active_ingredient_reference');
 
       final second = await service.syncIfNeeded();
       expect(second.state, ClinicalSyncState.current);
@@ -122,6 +127,16 @@ void main() {
           ClinicalSyncState.installing,
         ]),
       );
+      final progressEvents = statuses
+          .where(
+            (item) =>
+                item.state == ClinicalSyncState.downloading &&
+                item.downloadedBytes != null,
+          )
+          .toList(growable: false);
+      expect(progressEvents, isNotEmpty);
+      expect(progressEvents.last.downloadedBytes, greaterThan(0));
+      expect(progressEvents.last.downloadProgressText, isNotNull);
     },
   );
 
@@ -373,6 +388,38 @@ Map<String, Object?> _releaseJson() {
         'clinical_version': 'cycle10-test',
         'source_name': 'Fonte pública',
         'source_url': 'https://example.test/source',
+      },
+    ],
+    'professional_leaflets': <Object?>[
+      <String, Object?>{
+        'id': 'leaflet-1',
+        'source_name': 'DailyMed / FDA SPL',
+        'source_document_id': 'test-set-id',
+        'source_version': '7',
+        'source_language': 'en-US',
+        'source_url': 'https://example.test/leaflet',
+        'source_effective_date': '20260901',
+        'indications_text': 'Indicação estruturada de teste.',
+        'dosage_administration_text': 'Posologia estruturada de teste.',
+        'contraindications_text': 'Contraindicação estruturada de teste.',
+        'warnings_precautions_text': 'Advertência estruturada de teste.',
+        'adverse_reactions_text': null,
+        'drug_interactions_text': null,
+        'specific_populations_text': null,
+        'overdosage_text': null,
+        'description_text': null,
+        'clinical_pharmacology_text': null,
+        'how_supplied_storage_text': null,
+        'patient_counseling_text': null,
+        'review_status': 'public_label_verified',
+        'clinical_version': 'hotfix-1.5.1-test',
+      },
+    ],
+    'medication_leaflet_links': <Object?>[
+      <String, Object?>{
+        'medication_product_id': 'med-1',
+        'professional_leaflet_id': 'leaflet-1',
+        'relation_type': 'active_ingredient_reference',
       },
     ],
   };
