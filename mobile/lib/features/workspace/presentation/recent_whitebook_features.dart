@@ -496,9 +496,9 @@ class _SourcesTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const ListView(
-      padding: EdgeInsets.all(20),
-      children: [
+    return ListView(
+      padding: const EdgeInsets.all(20),
+      children: const [
         ListTile(
           contentPadding: EdgeInsets.zero,
           leading: Icon(Icons.source_outlined),
