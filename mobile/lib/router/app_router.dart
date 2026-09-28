@@ -12,6 +12,9 @@ import '../features/home/presentation/home_screen.dart';
 import '../features/medication/data/medication_repository.dart';
 import '../features/medication/presentation/medication_detail_screen.dart';
 import '../features/search/presentation/search_screen.dart';
+import '../features/workspace/presentation/clinical_tools_screens.dart';
+import '../features/workspace/presentation/clinical_workspace_screen.dart';
+import '../features/workspace/presentation/productivity_screens.dart';
 
 final ClinicalDatabase clinicalDatabase = ClinicalDatabase();
 final LocalMedicationRepository medicationRepository =
@@ -37,7 +40,16 @@ final GoRouter appRouter = GoRouter(
   routes: <RouteBase>[
     GoRoute(
       path: '/',
-      name: 'home',
+      name: 'workspace',
+      builder: (context, state) => ClinicalWorkspaceScreen(
+        recentRepository: recentMedicationRepository,
+        favoriteRepository: favoriteMedicationRepository,
+        syncCoordinator: syncService,
+      ),
+    ),
+    GoRoute(
+      path: '/classic-home',
+      name: 'classic-home',
       builder: (context, state) => HomeScreen(
         recentRepository: recentMedicationRepository,
         favoriteRepository: favoriteMedicationRepository,
@@ -45,10 +57,141 @@ final GoRouter appRouter = GoRouter(
       ),
     ),
     GoRoute(
+      path: '/global-search',
+      name: 'global-search',
+      builder: (context, state) =>
+          GlobalClinicalSearchScreen(repository: medicationRepository),
+    ),
+    GoRoute(
       path: '/search',
       name: 'search',
       builder: (context, state) =>
           SearchScreen(repository: medicationRepository),
+    ),
+    GoRoute(
+      path: '/assistant',
+      name: 'assistant',
+      builder: (context, state) =>
+          ClinicalAssistantScreen(repository: medicationRepository),
+    ),
+    GoRoute(
+      path: '/interactions',
+      name: 'interactions',
+      builder: (context, state) =>
+          InteractionCheckerScreen(repository: medicationRepository),
+    ),
+    GoRoute(
+      path: '/favorites',
+      name: 'favorites',
+      builder: (context, state) =>
+          FavoritesScreen(repository: favoriteMedicationRepository),
+    ),
+    GoRoute(
+      path: '/notes',
+      name: 'notes',
+      builder: (context, state) => const LocalNotesScreen(),
+    ),
+    GoRoute(
+      path: '/flashcards',
+      name: 'flashcards',
+      builder: (context, state) => const FlashcardsScreen(),
+    ),
+    GoRoute(
+      path: '/quizzes',
+      name: 'quizzes',
+      builder: (context, state) => const QuizzesScreen(),
+    ),
+    GoRoute(
+      path: '/catalog/administration',
+      name: 'administration-catalog',
+      builder: (context, state) => const ClinicalCatalogScreen(
+        title: 'Administração de medicamentos',
+        description:
+            'Catálogo para organizar conteúdos de preparo, vias e '
+            'administração. Fichas clínicas só são liberadas após revisão.',
+        topics: <String>[
+          'Administração por via oral',
+          'Administração intravenosa',
+          'Administração intramuscular',
+          'Administração subcutânea',
+          'Administração por sonda',
+          'Diluição e reconstituição',
+        ],
+      ),
+    ),
+    GoRoute(
+      path: '/catalog/procedures',
+      name: 'procedures-catalog',
+      builder: (context, state) => const ClinicalCatalogScreen(
+        title: 'Procedimentos de enfermagem',
+        description:
+            'Estrutura editorial para procedimentos com fonte, revisão, '
+            'materiais, etapas, alertas e registro.',
+        topics: <String>[
+          'Higienização das mãos',
+          'Punção venosa periférica',
+          'Curativos',
+          'Cateterismo vesical',
+          'Sinais vitais',
+          'Coleta de exames',
+        ],
+      ),
+    ),
+    GoRoute(
+      path: '/catalog/scales',
+      name: 'scales-catalog',
+      builder: (context, state) => const ClinicalCatalogScreen(
+        title: 'Escalas & instrumentos',
+        description:
+            'Catálogo preparado para escalas com entradas validadas, '
+            'resultado, interpretação e referência versionada.',
+        topics: <String>[
+          'Escala de Glasgow',
+          'Escala de Braden',
+          'Escala de Morse',
+          'RASS',
+          'Escala visual analógica',
+        ],
+      ),
+    ),
+    GoRoute(
+      path: '/catalog/protocols',
+      name: 'protocols-catalog',
+      builder: (context, state) => const ClinicalCatalogScreen(
+        title: 'Protocolos & fluxogramas',
+        description:
+            'Área preparada para protocolos institucionais e fluxos '
+            'versionados, sem criar recomendações clínicas não revisadas.',
+        topics: <String>[
+          'Segurança na administração de medicamentos',
+          'Prevenção de quedas',
+          'Prevenção de lesão por pressão',
+          'Reconhecimento de deterioração clínica',
+          'Fluxos institucionais',
+        ],
+      ),
+    ),
+    GoRoute(
+      path: '/catalog/codes',
+      name: 'codes-catalog',
+      builder: (context, state) => const ClinicalCatalogScreen(
+        title: 'Códigos e tabelas',
+        description:
+            'Estrutura para catálogos de codificação quando as bases '
+            'licenciadas ou públicas forem incorporadas ao release.',
+        topics: <String>[
+          'CID-10',
+          'SIGTAP / SUS',
+          'TUSS',
+          'LOINC',
+          'SNOMED CT',
+        ],
+      ),
+    ),
+    GoRoute(
+      path: '/calculators',
+      name: 'calculators',
+      builder: (context, state) => const CalculatorsHubScreen(),
     ),
     GoRoute(
       path: '/medications/:medicationId',
@@ -131,8 +274,9 @@ class _CalculatorPlaceholderScreen extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Text(
-            '$title será conectado a uma jornada independente '
-            'em um próximo ciclo.',
+            title +
+                ' exige uma fórmula clínica versionada e permanece '
+                'bloqueada até a validação editorial.',
             textAlign: TextAlign.center,
           ),
         ),
