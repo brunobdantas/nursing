@@ -93,6 +93,9 @@ jobs:
       - name: Curate safe structured concentrations
         run: python scripts/clinical_curation.py
 
+      - name: Seed critical administration guidance
+        run: python scripts/seed_critical_drugs.py
+
       - name: Start sync API locally
         shell: bash
         run: |
@@ -137,6 +140,8 @@ jobs:
           assert len(data["active_ingredients"]) > 0
           assert len(data["medications"]) > 0
           assert len(data["presentations"]) > 0
+          assert len(data["administration_guidance"]) > 0
+          assert len(data["incompatibilities"]) > 0
           assert all(
               item.get("regulatory_status", "").casefold() != "inativo"
               for item in data["medications"]
@@ -150,6 +155,10 @@ jobs:
               len(data["medications"]),
               "presentations:",
               len(data["presentations"]),
+              "administration_guidance:",
+              len(data["administration_guidance"]),
+              "incompatibilities:",
+              len(data["incompatibilities"]),
           )
           PY
 
