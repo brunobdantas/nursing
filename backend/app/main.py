@@ -34,7 +34,7 @@ def create_app(*, database_url: str | None = None) -> FastAPI:
         version="0.9.0",
         lifespan=lifespan,
     )
-    app.add_middleware(GZipMiddleware, minimum_size=1000, compresslevel=6)
+    app.add_middleware(GZipMiddleware, minimum_size=1000, compresslevel=9)
     app.include_router(router)
     return app
 
