@@ -570,7 +570,6 @@ class _StructuredLeafletSection extends StatelessWidget {
   }
 }
 
-
 class _OfficialLeafletSection extends StatelessWidget {
   const _OfficialLeafletSection({required this.medication});
 
