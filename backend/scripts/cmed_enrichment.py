@@ -211,22 +211,41 @@ def load_cmed_dataframe(content: bytes) -> pd.DataFrame:
 
 async def _download_cmed() -> tuple[str, bytes, dict[str, str]]:
     override = os.getenv("CMED_XLSX_URL")
-    timeout = httpx.Timeout(120.0, connect=30.0)
-    headers = {"User-Agent": "nursing-clinical-data-pipeline/1.1"}
-    async with httpx.AsyncClient(
-        timeout=timeout,
-        follow_redirects=True,
-        headers=headers,
-    ) as client:
-        if override:
-            source_url = override
-        else:
-            page = await client.get(CMED_INDEX_URL)
-            page.raise_for_status()
-            source_url = _latest_xlsx_url(page.text)
-        response = await client.get(source_url)
-        response.raise_for_status()
-        return source_url, response.content, dict(response.headers)
+    timeout = httpx.Timeout(180.0, connect=30.0)
+    headers = {"User-Agent": "nursing-clinical-data-pipeline/1.2"}
+    last_error: Exception | None = None
+
+    for attempt in range(1, 5):
+        try:
+            async with httpx.AsyncClient(
+                timeout=timeout,
+                follow_redirects=True,
+                headers=headers,
+            ) as client:
+                if override:
+                    source_url = override
+                else:
+                    page = await client.get(CMED_INDEX_URL)
+                    page.raise_for_status()
+                    source_url = _latest_xlsx_url(page.text)
+
+                response = await client.get(source_url)
+                response.raise_for_status()
+                content = response.content
+                content_length = response.headers.get("content-length")
+                if content_length is not None and len(content) != int(content_length):
+                    raise RuntimeError(
+                        "Incomplete CMED download: "
+                        f"received {len(content)} of {content_length} bytes"
+                    )
+                return source_url, content, dict(response.headers)
+        except (httpx.HTTPError, RuntimeError) as exc:
+            last_error = exc
+            if attempt == 4:
+                break
+            await asyncio.sleep(attempt * 2)
+
+    raise RuntimeError("Could not download complete CMED workbook after retries") from last_error
 
 
 def _match_product(
