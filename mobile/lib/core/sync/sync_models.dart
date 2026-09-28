@@ -134,9 +134,7 @@ final class SyncAdministrationGuidanceRecord {
     this.calculatorDurationMinutes,
   });
 
-  factory SyncAdministrationGuidanceRecord.fromJson(
-    Map<String, dynamic> json,
-  ) {
+  factory SyncAdministrationGuidanceRecord.fromJson(Map<String, dynamic> json) {
     return SyncAdministrationGuidanceRecord(
       id: _requiredString(json['id'], 'id'),
       medicationProductId: _requiredString(
@@ -303,8 +301,7 @@ final class ClinicalSyncRelease {
     final rawPresentations = json['presentations'];
     final rawAdministrationGuidance =
         json['administration_guidance'] ?? const <dynamic>[];
-    final rawIncompatibilities =
-        json['incompatibilities'] ?? const <dynamic>[];
+    final rawIncompatibilities = json['incompatibilities'] ?? const <dynamic>[];
     if (rawIngredients is! List<dynamic> ||
         rawMedications is! List<dynamic> ||
         rawPresentations is! List<dynamic> ||
@@ -362,7 +359,9 @@ final class ClinicalSyncRelease {
       }
     }
 
-    final presentationIds = presentations.map((item) => item.presentation.id).toSet();
+    final presentationIds = presentations
+        .map((item) => item.presentation.id)
+        .toSet();
     for (final presentation in presentations) {
       if (!medicationIds.contains(presentation.medicationProductId)) {
         throw const FormatException(
@@ -438,7 +437,6 @@ String? _nullableString(Object? value) {
   final trimmed = value.trim();
   return trimmed.isEmpty ? null : trimmed;
 }
-
 
 String? _nullableScalarString(Object? value) {
   if (value == null) {
