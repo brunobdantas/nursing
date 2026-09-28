@@ -214,16 +214,19 @@ def parse_spl(xml_bytes: bytes) -> ParsedLeaflet:
             continue
 
         text_element = _direct_child(section, "text")
-        narrative = _render_text(text_element if text_element is not None else section)
+        if text_element is not None:
+            narrative = _render_text(text_element)
+        else:
+            narrative = _render_text(section)
+            # Only the fallback can contain the section title itself.
+            title_prefix = _normalize_spaces(title)
+            if narrative.upper().startswith(title_prefix.upper()):
+                narrative = narrative[len(title_prefix):].lstrip(" \n:-")
+
         if not narrative:
             continue
 
-        # Avoid repeating the title if the fallback renderer captured it.
-        title_prefix = _normalize_spaces(title)
-        if narrative.upper().startswith(title_prefix.upper()):
-            narrative = narrative[len(title_prefix):].lstrip(" \n:-")
-
-        if narrative and narrative not in collected[field]:
+        if narrative not in collected[field]:
             collected[field].append(narrative)
 
     sections = {
