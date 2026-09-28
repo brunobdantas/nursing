@@ -31,6 +31,41 @@ void main() {
     expect(find.text('Memória de Cálculo'), findsOneWidget);
   });
 
+  testWidgets('infusion calculator accepts administration prefill', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ClinicalTheme.light(),
+        home: const InfusionCalculatorScreen(
+          initialVolumeMl: '100',
+          initialDurationMinutes: '10',
+          contextLabel: 'Amiodarona • preparo referenciado',
+        ),
+      ),
+    );
+
+    expect(
+      find.byKey(const ValueKey<String>('infusion-prefill-context')),
+      findsOneWidget,
+    );
+    final volumeField = tester.widget<TextField>(
+      find.byKey(const ValueKey<String>('fluid-volume-field')),
+    );
+    final timeField = tester.widget<TextField>(
+      find.byKey(const ValueKey<String>('fluid-time-field')),
+    );
+    expect(volumeField.controller?.text, '100');
+    expect(timeField.controller?.text, '10');
+
+    await tester.tap(
+      find.byKey(const ValueKey<String>('run-infusion-calculation')),
+    );
+    await tester.pump();
+
+    expect(find.text('600 mL/h'), findsOneWidget);
+  });
+
   testWidgets('drops calculator renders macro and micro results', (
     tester,
   ) async {
