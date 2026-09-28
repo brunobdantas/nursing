@@ -225,6 +225,7 @@ async def test_sync_content_returns_versioned_active_release_with_etag_and_gzip(
             FakeScalarResult([product]),
             FakeScalarResult([]),
             FakeScalarResult([]),
+            FakeScalarResult([]),
             FakeScalarResult([ingredient]),
         ]
     )
@@ -294,6 +295,7 @@ async def test_sync_content_fails_closed_on_inconsistent_calculation_ready_row()
             FakeScalarResult([product]),
             FakeScalarResult([]),
             FakeScalarResult([]),
+            FakeScalarResult([]),
             FakeScalarResult([ingredient]),
         ]
     )
@@ -359,6 +361,7 @@ async def test_sync_content_includes_verified_administration_and_incompatibility
             FakeScalarResult([product]),
             FakeScalarResult([guidance]),
             FakeScalarResult([incompatibility]),
+            FakeScalarResult([]),
             FakeScalarResult([ingredient, target]),
         ]
     )
