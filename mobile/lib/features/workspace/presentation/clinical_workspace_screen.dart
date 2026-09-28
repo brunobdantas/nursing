@@ -132,7 +132,9 @@ class _ClinicalWorkspaceScreenState extends State<ClinicalWorkspaceScreen> {
           ),
         ],
       ),
-      body: SafeArea(child: IndexedStack(index: _index, children: pages)),
+      body: SafeArea(
+        child: IndexedStack(index: _index, children: pages),
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
         onDestinationSelected: (value) => setState(() => _index = value),
@@ -206,9 +208,7 @@ class _WorkspaceHome extends StatelessWidget {
                 Icon(Icons.search_rounded, color: theme.colorScheme.primary),
                 const SizedBox(width: 12),
                 const Expanded(
-                  child: Text(
-                    'Buscar medicamentos, ferramentas e conteúdos',
-                  ),
+                  child: Text('Buscar medicamentos, ferramentas e conteúdos'),
                 ),
                 const Icon(Icons.chevron_right_rounded),
               ],
@@ -260,16 +260,18 @@ class _WorkspaceHome extends StatelessWidget {
             text: 'Seus conteúdos favoritos aparecerão aqui.',
           )
         else
-          ...favorites.take(3).map(
-            (item) => ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const CircleAvatar(child: Icon(Icons.medication)),
-              title: Text(item.displayName),
-              subtitle: Text(item.genericName),
-              trailing: const Icon(Icons.chevron_right_rounded),
-              onTap: () => onOpen('/medications/' + item.id),
-            ),
-          ),
+          ...favorites
+              .take(3)
+              .map(
+                (item) => ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const CircleAvatar(child: Icon(Icons.medication)),
+                  title: Text(item.displayName),
+                  subtitle: Text(item.genericName),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => onOpen('/medications/' + item.id),
+                ),
+              ),
         const SizedBox(height: 18),
         const _SectionHeader(title: 'Recentes'),
         if (recent.isEmpty)
@@ -278,16 +280,20 @@ class _WorkspaceHome extends StatelessWidget {
             text: 'As fichas consultadas recentemente aparecerão aqui.',
           )
         else
-          ...recent.take(4).map(
-            (item) => ListTile(
-              contentPadding: EdgeInsets.zero,
-              leading: const CircleAvatar(child: Icon(Icons.history_rounded)),
-              title: Text(item.displayName),
-              subtitle: Text(item.genericName),
-              trailing: const Icon(Icons.chevron_right_rounded),
-              onTap: () => onOpen('/medications/' + item.id),
-            ),
-          ),
+          ...recent
+              .take(4)
+              .map(
+                (item) => ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const CircleAvatar(
+                    child: Icon(Icons.history_rounded),
+                  ),
+                  title: Text(item.displayName),
+                  subtitle: Text(item.genericName),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () => onOpen('/medications/' + item.id),
+                ),
+              ),
       ],
     );
   }
@@ -475,9 +481,7 @@ class _ProfilePage extends StatelessWidget {
               ListTile(
                 leading: const Icon(Icons.star_outline_rounded),
                 title: const Text('Favoritos'),
-                subtitle: Text(
-                  favorites.length.toString() + ' salvos',
-                ),
+                subtitle: Text(favorites.length.toString() + ' salvos'),
                 trailing: const Icon(Icons.chevron_right_rounded),
                 onTap: () => onOpen('/favorites'),
               ),
@@ -554,11 +558,7 @@ class _ModuleTile extends StatelessWidget {
 }
 
 class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({
-    required this.title,
-    this.actionLabel,
-    this.onAction,
-  });
+  const _SectionHeader({required this.title, this.actionLabel, this.onAction});
 
   final String title;
   final String? actionLabel;

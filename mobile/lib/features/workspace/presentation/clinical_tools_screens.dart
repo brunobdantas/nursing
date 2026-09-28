@@ -9,10 +9,7 @@ import '../../medication/data/medication_models.dart';
 import '../../medication/data/medication_repository.dart';
 
 class GlobalClinicalSearchScreen extends StatefulWidget {
-  const GlobalClinicalSearchScreen({
-    required this.repository,
-    super.key,
-  });
+  const GlobalClinicalSearchScreen({required this.repository, super.key});
 
   final MedicationRepository repository;
 
@@ -28,8 +25,7 @@ class _GlobalClinicalSearchScreenState
   final TextEditingController _controller = TextEditingController();
   Timer? _debounce;
   _GlobalSearchFilter _filter = _GlobalSearchFilter.all;
-  List<MedicationSearchResult> _medications =
-      const <MedicationSearchResult>[];
+  List<MedicationSearchResult> _medications = const <MedicationSearchResult>[];
   bool _loading = false;
   String? _error;
 
@@ -119,10 +115,7 @@ class _GlobalClinicalSearchScreenState
     }
 
     setState(() => _loading = true);
-    _debounce = Timer(
-      const Duration(milliseconds: 350),
-      () => _run(query),
-    );
+    _debounce = Timer(const Duration(milliseconds: 350), () => _run(query));
   }
 
   Future<void> _run(String query) async {
@@ -150,13 +143,15 @@ class _GlobalClinicalSearchScreenState
   @override
   Widget build(BuildContext context) {
     final query = _controller.text.trim().toLowerCase();
-    final actions = _actions.where((item) {
-      final matchesFilter =
-          _filter == _GlobalSearchFilter.all || item.filter == _filter;
-      final matchesText =
-          query.isEmpty || item.title.toLowerCase().contains(query);
-      return matchesFilter && matchesText;
-    }).toList(growable: false);
+    final actions = _actions
+        .where((item) {
+          final matchesFilter =
+              _filter == _GlobalSearchFilter.all || item.filter == _filter;
+          final matchesText =
+              query.isEmpty || item.title.toLowerCase().contains(query);
+          return matchesFilter && matchesText;
+        })
+        .toList(growable: false);
     final showMedications =
         _filter == _GlobalSearchFilter.all ||
         _filter == _GlobalSearchFilter.medications;
@@ -193,9 +188,8 @@ class _GlobalClinicalSearchScreenState
                 FilterChip(
                   label: const Text('Medicamentos'),
                   selected: _filter == _GlobalSearchFilter.medications,
-                  onSelected: (_) => setState(
-                    () => _filter = _GlobalSearchFilter.medications,
-                  ),
+                  onSelected: (_) =>
+                      setState(() => _filter = _GlobalSearchFilter.medications),
                 ),
                 FilterChip(
                   label: const Text('Ferramentas'),
@@ -215,10 +209,7 @@ class _GlobalClinicalSearchScreenState
               const SizedBox(height: 14),
               const LinearProgressIndicator(),
             ],
-            if (_error != null) ...[
-              const SizedBox(height: 14),
-              Text(_error!),
-            ],
+            if (_error != null) ...[const SizedBox(height: 14), Text(_error!)],
             if (actions.isNotEmpty) ...[
               const SizedBox(height: 18),
               Text('Módulos', style: Theme.of(context).textTheme.titleLarge),
@@ -345,10 +336,7 @@ class CalculatorsHubScreen extends StatelessWidget {
 }
 
 class ClinicalAssistantScreen extends StatefulWidget {
-  const ClinicalAssistantScreen({
-    required this.repository,
-    super.key,
-  });
+  const ClinicalAssistantScreen({required this.repository, super.key});
 
   final MedicationRepository repository;
 
@@ -395,7 +383,7 @@ class _ClinicalAssistantScreenState extends State<ClinicalAssistantScreen> {
           : 'Encontrei ' +
                 products.length.toString() +
                 ' resultado(s) na base offline. Abra a ficha para conferir '
-                'apresentações, registro e recursos de cálculo.';
+                    'apresentações, registro e recursos de cálculo.';
       setState(() {
         _turns.add(_AssistantTurn.assistant(answer, results: products));
         _loading = false;
@@ -482,10 +470,7 @@ class _ClinicalAssistantScreenState extends State<ClinicalAssistantScreen> {
 }
 
 class InteractionCheckerScreen extends StatefulWidget {
-  const InteractionCheckerScreen({
-    required this.repository,
-    super.key,
-  });
+  const InteractionCheckerScreen({required this.repository, super.key});
 
   final MedicationRepository repository;
 
@@ -560,8 +545,7 @@ class _InteractionCheckerScreenState extends State<InteractionCheckerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final semantic =
-        Theme.of(context).extension<ClinicalSemanticColors>()!;
+    final semantic = Theme.of(context).extension<ClinicalSemanticColors>()!;
     return Scaffold(
       appBar: AppBar(title: const Text('Interações medicamentosas')),
       body: ListView(
@@ -609,18 +593,16 @@ class _InteractionCheckerScreenState extends State<InteractionCheckerScreen> {
                       leading: const Icon(Icons.looks_one_outlined),
                       title: Text(_firstMatch!.displayName),
                       trailing: const Icon(Icons.chevron_right_rounded),
-                      onTap: () => context.push(
-                        '/medications/' + _firstMatch!.id,
-                      ),
+                      onTap: () =>
+                          context.push('/medications/' + _firstMatch!.id),
                     ),
                     const Divider(height: 1),
                     ListTile(
                       leading: const Icon(Icons.looks_two_outlined),
                       title: Text(_secondMatch!.displayName),
                       trailing: const Icon(Icons.chevron_right_rounded),
-                      onTap: () => context.push(
-                        '/medications/' + _secondMatch!.id,
-                      ),
+                      onTap: () =>
+                          context.push('/medications/' + _secondMatch!.id),
                     ),
                   ],
                 ),
@@ -652,10 +634,7 @@ class _InteractionCheckerScreenState extends State<InteractionCheckerScreen> {
 }
 
 class FavoritesScreen extends StatefulWidget {
-  const FavoritesScreen({
-    required this.repository,
-    super.key,
-  });
+  const FavoritesScreen({required this.repository, super.key});
 
   final FavoriteMedicationRepository repository;
 
@@ -755,9 +734,7 @@ class _ClinicalCatalogScreenState extends State<ClinicalCatalogScreen> {
   Widget build(BuildContext context) {
     final query = _search.text.trim().toLowerCase();
     final topics = widget.topics
-        .where(
-          (topic) => query.isEmpty || topic.toLowerCase().contains(query),
-        )
+        .where((topic) => query.isEmpty || topic.toLowerCase().contains(query))
         .toList(growable: false);
 
     return Scaffold(
@@ -821,8 +798,9 @@ class _AssistantBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final alignment =
-        turn.isUser ? Alignment.centerRight : Alignment.centerLeft;
+    final alignment = turn.isUser
+        ? Alignment.centerRight
+        : Alignment.centerLeft;
     final background = turn.isUser
         ? theme.colorScheme.primaryContainer
         : theme.colorScheme.surfaceContainerHigh;
@@ -873,8 +851,7 @@ class _SafetyBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final semantic =
-        Theme.of(context).extension<ClinicalSemanticColors>()!;
+    final semantic = Theme.of(context).extension<ClinicalSemanticColors>()!;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -902,10 +879,7 @@ class _SafetyBanner extends StatelessWidget {
 }
 
 class _ContentPackCard extends StatelessWidget {
-  const _ContentPackCard({
-    required this.title,
-    required this.message,
-  });
+  const _ContentPackCard({required this.title, required this.message});
 
   final String title;
   final String message;
@@ -929,10 +903,7 @@ class _ContentPackCard extends StatelessWidget {
 }
 
 class _QuietState extends StatelessWidget {
-  const _QuietState({
-    required this.icon,
-    required this.text,
-  });
+  const _QuietState({required this.icon, required this.text});
 
   final IconData icon;
   final String text;
@@ -973,12 +944,7 @@ class _SearchAction {
 }
 
 class _HubTool {
-  const _HubTool(
-    this.title,
-    this.subtitle,
-    this.icon,
-    this.route,
-  );
+  const _HubTool(this.title, this.subtitle, this.icon, this.route);
 
   final String title;
   final String subtitle;
@@ -999,12 +965,7 @@ class _AssistantTurn {
   factory _AssistantTurn.assistant(
     String text, {
     List<MedicationSearchResult> results = const <MedicationSearchResult>[],
-  }) =>
-      _AssistantTurn._(
-        isUser: false,
-        text: text,
-        results: results,
-      );
+  }) => _AssistantTurn._(isUser: false, text: text, results: results);
 
   final bool isUser;
   final String text;

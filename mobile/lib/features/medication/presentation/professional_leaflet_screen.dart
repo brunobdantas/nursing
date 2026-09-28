@@ -10,10 +10,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 import '../data/medication_models.dart';
 
 class ProfessionalLeafletScreen extends StatefulWidget {
-  const ProfessionalLeafletScreen({
-    required this.medication,
-    super.key,
-  });
+  const ProfessionalLeafletScreen({required this.medication, super.key});
 
   final MedicationDetailResponse medication;
 
@@ -83,10 +80,9 @@ class _ProfessionalLeafletScreenState extends State<ProfessionalLeafletScreen> {
       return false;
     }
     try {
-      final bytes = await file.openRead(0, 4).fold<List<int>>(
-        <int>[],
-        (buffer, data) => buffer..addAll(data),
-      );
+      final bytes = await file
+          .openRead(0, 4)
+          .fold<List<int>>(<int>[], (buffer, data) => buffer..addAll(data));
       return bytes.length >= 4 &&
           bytes[0] == 0x25 &&
           bytes[1] == 0x50 &&
@@ -210,8 +206,7 @@ class _ProfessionalLeafletScreenState extends State<ProfessionalLeafletScreen> {
                 children: [
                   const _SourceBanner(
                     icon: Icons.offline_pin_outlined,
-                    text:
-                        'Bula oficial previamente armazenada neste aparelho.',
+                    text: 'Bula oficial previamente armazenada neste aparelho.',
                   ),
                   Expanded(
                     child: PdfViewer.file(
@@ -228,7 +223,7 @@ class _ProfessionalLeafletScreenState extends State<ProfessionalLeafletScreen> {
                     text: registration == null
                         ? 'Fonte oficial: Bulário Eletrônico da Anvisa.'
                         : 'Fonte oficial: Bulário Eletrônico da Anvisa. '
-                              'Registro: ' +
+                                  'Registro: ' +
                               registration +
                               '.',
                   ),
@@ -245,10 +240,7 @@ class _ProfessionalLeafletScreenState extends State<ProfessionalLeafletScreen> {
                   if (_error != null)
                     Padding(
                       padding: const EdgeInsets.all(16),
-                      child: Text(
-                        _error!,
-                        textAlign: TextAlign.center,
-                      ),
+                      child: Text(_error!, textAlign: TextAlign.center),
                     ),
                   if (controller != null)
                     Expanded(child: WebViewWidget(controller: controller))
@@ -264,10 +256,7 @@ class _ProfessionalLeafletScreenState extends State<ProfessionalLeafletScreen> {
 }
 
 class _SourceBanner extends StatelessWidget {
-  const _SourceBanner({
-    required this.icon,
-    required this.text,
-  });
+  const _SourceBanner({required this.icon, required this.text});
 
   final IconData icon;
   final String text;

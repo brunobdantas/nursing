@@ -31,15 +31,16 @@ class _LocalNotesScreenState extends State<LocalNotesScreen> {
       if (decoded is! List<dynamic>) {
         return;
       }
-      final notes = decoded
-          .whereType<Map>()
-          .map(
-            (item) => _LocalNote.fromJson(
-              item.map((key, value) => MapEntry(key.toString(), value)),
-            ),
-          )
-          .toList(growable: false)
-        ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+      final notes =
+          decoded
+              .whereType<Map>()
+              .map(
+                (item) => _LocalNote.fromJson(
+                  item.map((key, value) => MapEntry(key.toString(), value)),
+                ),
+              )
+              .toList(growable: false)
+            ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
       if (mounted) {
         setState(() => _notes = notes);
       }
@@ -161,8 +162,7 @@ class _LocalNotesScreenState extends State<LocalNotesScreen> {
           : ListView.separated(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
               itemCount: _notes.length,
-              separatorBuilder: (context, index) =>
-                  const SizedBox(height: 8),
+              separatorBuilder: (context, index) => const SizedBox(height: 8),
               itemBuilder: (context, index) {
                 final note = _notes[index];
                 return Card(
@@ -479,10 +479,7 @@ class _QuizzesScreenState extends State<QuizzesScreen> {
           const SizedBox(height: 8),
           LinearProgressIndicator(value: (_index + 1) / _questions.length),
           const SizedBox(height: 22),
-          Text(
-            question.prompt,
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
+          Text(question.prompt, style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 16),
           for (var i = 0; i < question.options.length; i++)
             Padding(
@@ -588,10 +585,7 @@ class _QuizQuestion {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState({
-    required this.icon,
-    required this.text,
-  });
+  const _EmptyState({required this.icon, required this.text});
 
   final IconData icon;
   final String text;
