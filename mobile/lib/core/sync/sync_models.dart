@@ -264,8 +264,8 @@ final class ClinicalSyncRelease {
     required this.activeIngredients,
     required this.medications,
     required this.presentations,
-    required this.administrationGuidance,
-    required this.incompatibilities,
+    this.administrationGuidance = const <SyncAdministrationGuidanceRecord>[],
+    this.incompatibilities = const <SyncIncompatibilityRecord>[],
   });
 
   factory ClinicalSyncRelease.fromJson(Map<String, dynamic> json) {
