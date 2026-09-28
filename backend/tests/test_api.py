@@ -223,6 +223,8 @@ async def test_sync_content_returns_versioned_active_release_with_etag_and_gzip(
     session.scalars = AsyncMock(
         side_effect=[
             FakeScalarResult([product]),
+            FakeScalarResult([]),
+            FakeScalarResult([]),
             FakeScalarResult([ingredient]),
         ]
     )
@@ -248,6 +250,8 @@ async def test_sync_content_returns_versioned_active_release_with_etag_and_gzip(
         assert len(payload["active_ingredients"]) == 1
         assert len(payload["medications"]) == 1
         assert len(payload["presentations"]) == 1
+        assert payload["administration_guidance"] == []
+        assert payload["incompatibilities"] == []
         assert payload["presentations"][0]["id"] == str(active_presentation.id)
         assert payload["presentations"][0]["calculation_ready"] is True
         assert response.headers["etag"] == f'"{payload["content_version"]}"'
@@ -257,6 +261,8 @@ async def test_sync_content_returns_versioned_active_release_with_etag_and_gzip(
         session.scalars = AsyncMock(
             side_effect=[
                 FakeScalarResult([product]),
+                FakeScalarResult([]),
+                FakeScalarResult([]),
                 FakeScalarResult([ingredient]),
             ]
         )
@@ -286,6 +292,8 @@ async def test_sync_content_fails_closed_on_inconsistent_calculation_ready_row()
     session.scalars = AsyncMock(
         side_effect=[
             FakeScalarResult([product]),
+            FakeScalarResult([]),
+            FakeScalarResult([]),
             FakeScalarResult([ingredient]),
         ]
     )
@@ -301,3 +309,76 @@ async def test_sync_content_fails_closed_on_inconsistent_calculation_ready_row()
     payload = response.json()
     assert payload["detail"]["code"] == "CLINICAL_DATA_INTEGRITY_ERROR"
     assert payload["detail"]["presentation_id"] == str(inconsistent.id)
+
+
+@pytest.mark.asyncio
+async def test_sync_content_includes_verified_administration_and_incompatibility():
+    ingredient = _ingredient("Amiodarona")
+    target = _ingredient("Bicarbonato de sódio")
+    presentation = _presentation(calculation_ready=True, complete_concentration=True)
+    product = _product(presentation=presentation, ingredient=ingredient)
+    route = presentation.route_links[0].route
+
+    guidance = SimpleNamespace(
+        id=uuid4(),
+        presentation_id=presentation.id,
+        route=route,
+        administration_method="Carga intravenosa por bomba volumétrica",
+        diluent_name="SG 5% (D5W)",
+        diluent_volume_value=Decimal("100"),
+        diluent_volume_unit="mL",
+        resulting_total_volume_value=Decimal("100"),
+        resulting_total_volume_unit="mL",
+        administration_time_min_seconds=600,
+        administration_time_max_seconds=600,
+        instruction_text="150 mg em 100 mL de SG 5% por 10 minutos.",
+        review_status="public_label_verified",
+        clinical_version="cycle10-1.0.0",
+        source_name="DailyMed / FDA prescribing information",
+        source_url="https://dailymed.nlm.nih.gov/",
+        calculator_formula_id="MED_INFUSION_ML_H",
+        calculator_volume_ml=Decimal("100"),
+        calculator_duration_minutes=Decimal("10"),
+    )
+    incompatibility = SimpleNamespace(
+        id=uuid4(),
+        active_ingredient_id=ingredient.id,
+        incompatible_ingredient_id=target.id,
+        interaction_type="y_site",
+        severity="critical",
+        description="Forma precipitado; usar linha separada.",
+        review_status="public_label_verified",
+        clinical_version="cycle10-1.0.0",
+        source_name="DailyMed / FDA prescribing information",
+        source_url="https://dailymed.nlm.nih.gov/",
+    )
+
+    session = MagicMock()
+    session.scalars = AsyncMock(
+        side_effect=[
+            FakeScalarResult([product]),
+            FakeScalarResult([guidance]),
+            FakeScalarResult([incompatibility]),
+            FakeScalarResult([ingredient, target]),
+        ]
+    )
+    app = _app_with_session(session)
+
+    async with AsyncClient(
+        transport=ASGITransport(app=app),
+        base_url="http://test",
+    ) as client:
+        response = await client.get("/v1/sync/content")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["administration_guidance"][0]["calculator_formula_id"] == (
+        "MED_INFUSION_ML_H"
+    )
+    assert payload["administration_guidance"][0][
+        "administration_time_min_minutes"
+    ] == "10"
+    assert payload["incompatibilities"][0]["severity"] == "critical"
+    assert payload["incompatibilities"][0]["incompatible_ingredient_name"] == (
+        "Bicarbonato de sódio"
+    )
