@@ -215,8 +215,9 @@ final class LocalMedicationRepository implements MedicationRepository {
         ].join('|');
         guidanceByClinicalContent.putIfAbsent(key, () => guidance);
       }
-      final administrationGuidance =
-          guidanceByClinicalContent.values.toList(growable: false);
+      final administrationGuidance = guidanceByClinicalContent.values.toList(
+        growable: false,
+      );
 
       final incompatibilityByClinicalContent =
           <String, MedicationIncompatibility>{};
@@ -231,8 +232,9 @@ final class LocalMedicationRepository implements MedicationRepository {
         ].join('|');
         incompatibilityByClinicalContent.putIfAbsent(key, () => item);
       }
-      final incompatibilities =
-          incompatibilityByClinicalContent.values.toList(growable: false);
+      final incompatibilities = incompatibilityByClinicalContent.values.toList(
+        growable: false,
+      );
 
       return MedicationDetailResponse(
         id: _requiredString(medication, 'id'),
