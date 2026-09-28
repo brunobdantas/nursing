@@ -137,7 +137,9 @@ jobs:
           path = Path("clinical-releases/clinical-release-v1.json")
           gzip_path = Path("clinical-releases/clinical-release-v1.json.gz")
           raw = path.read_bytes()
-          assert gzip.decompress(gzip_path.read_bytes()) == raw
+          compressed = gzip_path.read_bytes()
+          assert gzip.decompress(compressed) == raw
+          assert len(compressed) < len(raw)
           data = json.loads(raw.decode("utf-8"))
           assert data["release_schema"] == "clinical-release-v1"
           assert data["content_version"].startswith("clinical-release-v1-")
@@ -152,9 +154,16 @@ jobs:
               item.get("regulatory_status", "").casefold() != "inativo"
               for item in data["medications"]
           )
+          reduction = 100 * (1 - len(compressed) / len(raw))
           print(
               "release:",
               data["content_version"],
+              "raw_bytes:",
+              len(raw),
+              "gzip_bytes:",
+              len(compressed),
+              "gzip_reduction_pct:",
+              round(reduction, 1),
               "ingredients:",
               len(data["active_ingredients"]),
               "medications:",
