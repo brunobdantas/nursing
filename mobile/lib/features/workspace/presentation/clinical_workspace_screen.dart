@@ -356,6 +356,60 @@ class _ExplorePage extends StatelessWidget {
         '/catalog/codes',
       ),
       _ExploreItem(
+        'Prescrição e preparo',
+        'Guias, conferência e conteúdo editorial versionado',
+        Icons.receipt_long_outlined,
+        '/areas/prescription',
+      ),
+      _ExploreItem(
+        'Emergência & UTI',
+        'Conteúdos por contexto crítico e monitorização',
+        Icons.monitor_heart_outlined,
+        '/areas/emergency',
+      ),
+      _ExploreItem(
+        'Pediatria',
+        'Conteúdo clínico por faixa etária e contexto',
+        Icons.child_care_outlined,
+        '/areas/pediatrics',
+      ),
+      _ExploreItem(
+        'Saúde da mulher & obstetrícia',
+        'Conteúdos de GO, gestação e assistência',
+        Icons.pregnant_woman_outlined,
+        '/areas/obgyn',
+      ),
+      _ExploreItem(
+        'Cirurgia & perioperatório',
+        'Pré, intra e pós-operatório em estrutura editorial',
+        Icons.medical_services_outlined,
+        '/areas/surgery',
+      ),
+      _ExploreItem(
+        'Antimicrobianos',
+        'Consulta estruturada e stewardship',
+        Icons.science_outlined,
+        '/areas/antimicrobials',
+      ),
+      _ExploreItem(
+        'Vacinação',
+        'Imunização, calendários e administração',
+        Icons.vaccines_outlined,
+        '/areas/vaccination',
+      ),
+      _ExploreItem(
+        'Laboratório & exames',
+        'Exames, unidades, coleta e interpretação referenciada',
+        Icons.biotech_outlined,
+        '/areas/labs',
+      ),
+      _ExploreItem(
+        'Raciocínio diferencial',
+        'Jornada estruturada sem inferência sem fonte',
+        Icons.psychology_alt_outlined,
+        '/differential',
+      ),
+      _ExploreItem(
         'Assistente clínico',
         'Busca conversacional com fontes locais',
         Icons.auto_awesome_outlined,
@@ -498,6 +552,14 @@ class _ProfilePage extends StatelessWidget {
                 trailing: const Icon(Icons.chevron_right_rounded),
                 onTap: () => onOpen('/notes'),
               ),
+              const Divider(height: 1),
+              ListTile(
+                leading: const Icon(Icons.lock_outline_rounded),
+                title: const Text('Acesso e conteúdo'),
+                subtitle: const Text('Gratuito/restrito • modo de teste'),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => onOpen('/access'),
+              ),
             ],
           ),
         ),
@@ -505,7 +567,7 @@ class _ProfilePage extends StatelessWidget {
         const Card(
           child: ListTile(
             leading: Icon(Icons.verified_user_outlined),
-            title: Text('Nursing 1.3.0'),
+            title: Text('Nursing 1.4.0'),
             subtitle: Text(
               'Apoio à decisão. Não substitui prescrição, protocolo '
               'institucional ou julgamento clínico.',
