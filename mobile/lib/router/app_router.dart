@@ -15,6 +15,7 @@ import '../features/search/presentation/search_screen.dart';
 import '../features/workspace/presentation/clinical_tools_screens.dart';
 import '../features/workspace/presentation/clinical_workspace_screen.dart';
 import '../features/workspace/presentation/productivity_screens.dart';
+import '../features/workspace/presentation/recent_whitebook_features.dart';
 
 final ClinicalDatabase clinicalDatabase = ClinicalDatabase();
 final LocalMedicationRepository medicationRepository =
@@ -186,6 +187,201 @@ final GoRouter appRouter = GoRouter(
           'LOINC',
           'SNOMED CT',
         ],
+      ),
+    ),
+    GoRoute(
+      path: '/access',
+      name: 'access-content',
+      builder: (context, state) => const AccessAndContentScreen(),
+    ),
+    GoRoute(
+      path: '/differential',
+      name: 'differential-reasoning',
+      builder: (context, state) => const DifferentialReasoningScreen(),
+    ),
+    GoRoute(
+      path: '/areas/prescription',
+      name: 'prescription-area',
+      builder: (context, state) => const ClinicalAreaHubScreen(
+        title: 'Prescrição e preparo',
+        description:
+            'Jornada estruturada para consulta de prescrições, preparo e '
+            'conferência, sem substituir prescrição ou protocolo institucional.',
+        restricted: true,
+        groups: <String, List<String>>{
+          'Prescrição': <String>[
+            'Leitura e conferência da prescrição',
+            'Reconciliação e checagens',
+            'Aprazamento e documentação',
+          ],
+          'Preparo': <String>[
+            'Diluição e reconstituição',
+            'Compatibilidade de vias',
+            'Rotulagem e dupla checagem',
+          ],
+        },
+      ),
+    ),
+    GoRoute(
+      path: '/areas/emergency',
+      name: 'emergency-area',
+      builder: (context, state) => const ClinicalAreaHubScreen(
+        title: 'Emergência & UTI',
+        description:
+            'Área organizada por contexto crítico, monitorização e fluxos '
+            'assistenciais versionados.',
+        restricted: true,
+        groups: <String, List<String>>{
+          'Emergência': <String>[
+            'Avaliação inicial',
+            'Deterioração clínica',
+            'Segurança em situações críticas',
+          ],
+          'UTI': <String>[
+            'Monitorização',
+            'Dispositivos e cuidados intensivos',
+            'Sedação e avaliação neurológica',
+          ],
+        },
+      ),
+    ),
+    GoRoute(
+      path: '/areas/pediatrics',
+      name: 'pediatrics-area',
+      builder: (context, state) => const ClinicalAreaHubScreen(
+        title: 'Pediatria',
+        description:
+            'Conteúdo hierárquico por faixa etária e contexto pediátrico.',
+        restricted: true,
+        groups: <String, List<String>>{
+          'Avaliação': <String>[
+            'Avaliação pediátrica',
+            'Sinais vitais por faixa etária',
+            'Crescimento e desenvolvimento',
+          ],
+          'Administração': <String>[
+            'Administração segura em pediatria',
+            'Dispositivos e vias',
+            'Cálculos pediátricos versionados',
+          ],
+        },
+      ),
+    ),
+    GoRoute(
+      path: '/areas/obgyn',
+      name: 'obgyn-area',
+      builder: (context, state) => const ClinicalAreaHubScreen(
+        title: 'Saúde da mulher & obstetrícia',
+        description:
+            'Organização de conteúdos de ginecologia, gestação, parto e '
+            'puerpério em fichas rastreáveis.',
+        restricted: true,
+        groups: <String, List<String>>{
+          'Obstetrícia': <String>[
+            'Pré-natal',
+            'Trabalho de parto',
+            'Puerpério',
+          ],
+          'Saúde da mulher': <String>[
+            'Assistência ginecológica',
+            'Planejamento reprodutivo',
+            'Segurança e sinais de alerta',
+          ],
+        },
+      ),
+    ),
+    GoRoute(
+      path: '/areas/surgery',
+      name: 'surgery-area',
+      builder: (context, state) => const ClinicalAreaHubScreen(
+        title: 'Cirurgia & perioperatório',
+        description:
+            'Fluxos de consulta para pré, intra e pós-operatório com '
+            'revisão editorial.',
+        restricted: true,
+        groups: <String, List<String>>{
+          'Pré-operatório': <String>[
+            'Preparo pré-operatório',
+            'Checklist e identificação',
+          ],
+          'Intraoperatório': <String>[
+            'Segurança cirúrgica',
+            'Posicionamento e dispositivos',
+          ],
+          'Pós-operatório': <String>[
+            'Recuperação pós-anestésica',
+            'Cuidados pós-operatórios',
+          ],
+        },
+      ),
+    ),
+    GoRoute(
+      path: '/areas/antimicrobials',
+      name: 'antimicrobials-area',
+      builder: (context, state) => const ClinicalAreaHubScreen(
+        title: 'Antimicrobianos',
+        description:
+            'Consulta organizada para antimicrobianos e stewardship, com '
+            'conteúdo bloqueado sem referência revisada.',
+        restricted: true,
+        groups: <String, List<String>>{
+          'Consulta': <String>[
+            'Classes de antimicrobianos',
+            'Administração e monitorização',
+            'Ajustes e populações especiais',
+          ],
+          'Stewardship': <String>[
+            'Uso responsável',
+            'Coleta antes da terapia',
+            'Reavaliação de terapia',
+          ],
+        },
+      ),
+    ),
+    GoRoute(
+      path: '/areas/vaccination',
+      name: 'vaccination-area',
+      builder: (context, state) => const ClinicalAreaHubScreen(
+        title: 'Vacinação',
+        description:
+            'Estrutura para imunização, calendários, técnica e registro.',
+        groups: <String, List<String>>{
+          'Imunização': <String>[
+            'Calendários vacinais',
+            'Vias e técnica de administração',
+            'Conservação e cadeia de frio',
+          ],
+          'Segurança': <String>[
+            'Triagem pré-vacinal',
+            'Eventos adversos',
+            'Registro da vacinação',
+          ],
+        },
+      ),
+    ),
+    GoRoute(
+      path: '/areas/labs',
+      name: 'labs-area',
+      builder: (context, state) => const ClinicalAreaHubScreen(
+        title: 'Laboratório & exames',
+        description:
+            'Catálogo para exames, unidades, coleta e interpretação baseada '
+            'em fontes e intervalos de referência versionados.',
+        restricted: true,
+        groups: <String, List<String>>{
+          'Laboratório': <String>[
+            'Hemograma',
+            'Eletrólitos',
+            'Função renal',
+            'Função hepática',
+            'Coagulação',
+          ],
+          'Coleta': <String>[
+            'Preparo para coleta',
+            'Identificação de amostras',
+            'Conservação e transporte',
+          ],
+        },
       ),
     ),
     GoRoute(
