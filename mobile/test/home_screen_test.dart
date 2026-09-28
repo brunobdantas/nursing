@@ -173,7 +173,7 @@ void main() {
               hasLocalContent: false,
             ),
             syncStatus: downloading,
-            progressStatuses: const <ClinicalSyncStatus>[downloading],
+            progressStatuses: <ClinicalSyncStatus>[downloading],
           ),
         ),
       ),
