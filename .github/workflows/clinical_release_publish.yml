@@ -88,6 +88,17 @@ jobs:
       - name: Resolve canonical medication entities
         run: python scripts/entity_resolution.py
 
+      - name: Ingest complete official Bulário metadata into RAW and STAGING
+        run: python scripts/etl_bulario.py
+
+      - name: Preserve Bulário source snapshots and coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: anvisa-bulario-catalogue
+          path: backend/data/raw/bulario/
+          retention-days: 30
+          if-no-files-found: error
+
       - name: Enrich commercial presentations from CMED
         run: python scripts/cmed_enrichment.py
 

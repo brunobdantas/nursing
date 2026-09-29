@@ -27,6 +27,7 @@ Thumbs.db
 # Local data / ETL artifacts
 data/raw/
 data/staging/
+backend/data/raw/
 *.csv
 *.parquet
 

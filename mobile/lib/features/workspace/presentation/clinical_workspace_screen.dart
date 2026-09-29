@@ -232,6 +232,11 @@ class _WorkspaceHome extends StatelessWidget {
               onTap: () => onOpen('/search'),
             ),
             _ModuleTile(
+              icon: Icons.menu_book_outlined,
+              label: 'Bulário Anvisa',
+              onTap: () => onOpen('/bulario'),
+            ),
+            _ModuleTile(
               icon: Icons.calculate_outlined,
               label: 'Calculadoras',
               onTap: () => onOpen('/calculators'),
@@ -312,6 +317,12 @@ class _ExplorePage extends StatelessWidget {
         'Bulário, apresentações e cálculo seguro',
         Icons.medication_outlined,
         '/search',
+      ),
+      _ExploreItem(
+        'Bulário Anvisa',
+        'Catálogo brasileiro e histórico offline',
+        Icons.menu_book_outlined,
+        '/bulario',
       ),
       _ExploreItem(
         'Administração de medicamentos',

@@ -74,3 +74,28 @@ jobs:
 
       - name: Run API integration tests
         run: pytest -q
+
+      - name: Verify Bulário PostgreSQL import and idempotency
+        run: |
+          python - <<'PY'
+          import asyncio
+          import os
+          import tempfile
+          from pathlib import Path
+          from scripts.etl_bulario import digest, import_postgres, parse
+          from tests.test_bulario_etl import PRODUCT, DOCUMENT
+
+          async def check():
+              with tempfile.TemporaryDirectory() as directory:
+                  sources = {"product": PRODUCT.encode(), "document": DOCUMENT.encode()}
+                  paths = {kind: Path(directory) / (kind + ".csv") for kind in sources}
+                  for kind, data in sources.items():
+                      paths[kind].write_bytes(data)
+                  rows = {kind: parse(data, kind) for kind, data in sources.items()}
+                  hashes = {kind: digest(data) for kind, data in sources.items()}
+                  first = await import_postgres(os.environ["DATABASE_URL"], rows, paths, hashes)
+                  second = await import_postgres(os.environ["DATABASE_URL"], rows, paths, hashes)
+                  assert first == {"product": 1, "document": 1}, first
+                  assert second == {"product": 0, "document": 0}, second
+          asyncio.run(check())
+          PY
