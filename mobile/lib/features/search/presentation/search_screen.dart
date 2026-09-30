@@ -92,7 +92,8 @@ class _SearchScreenState extends State<SearchScreen> {
       try {
         regulatory = await bulario.search(query, limit: 10);
       } catch (_) {
-        regulatoryWarning = 'O catálogo regulatório offline não pôde ser aberto.';
+        regulatoryWarning =
+            'O catálogo regulatório offline não pôde ser aberto.';
       }
     }
 
@@ -138,10 +139,8 @@ class _SearchScreenState extends State<SearchScreen> {
     }
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => BularioDetailScreen(
-          record: item,
-          repository: repository,
-        ),
+        builder: (_) =>
+            BularioDetailScreen(record: item, repository: repository),
       ),
     );
   }
@@ -199,7 +198,8 @@ class _SearchScreenState extends State<SearchScreen> {
                     autocorrect: false,
                     enableSuggestions: false,
                     decoration: InputDecoration(
-                      hintText: 'Medicamento, princípio ativo, empresa ou registro',
+                      hintText:
+                          'Medicamento, princípio ativo, empresa ou registro',
                       helperText: widget.bularioRepository == null
                           ? 'Busca na base clínica local'
                           : 'Cruza ficha clínica e catálogo oficial Anvisa no aparelho',
@@ -261,10 +261,10 @@ class _SearchScreenState extends State<SearchScreen> {
         _clinicalResponse?.items ?? const <MedicationSearchResult>[];
     final hasAnything = clinicalItems.isNotEmpty || _regulatoryRows.isNotEmpty;
 
-    if (!hasAnything && _clinicalWarning == null && _regulatoryWarning == null) {
-      return const _NoResultsState(
-        key: ValueKey<String>('search-no-results'),
-      );
+    if (!hasAnything &&
+        _clinicalWarning == null &&
+        _regulatoryWarning == null) {
+      return const _NoResultsState(key: ValueKey<String>('search-no-results'));
     }
 
     return ListView(
@@ -313,10 +313,7 @@ class _SearchScreenState extends State<SearchScreen> {
           ),
           const SizedBox(height: 10),
           for (final item in _regulatoryRows) ...[
-            _RegulatoryResultCard(
-              item: item,
-              onOpen: () => _openBulario(item),
-            ),
+            _RegulatoryResultCard(item: item, onOpen: () => _openBulario(item)),
             const SizedBox(height: 10),
           ],
         ],
@@ -379,10 +376,7 @@ class _ResultSectionHeader extends StatelessWidget {
 }
 
 class _RegulatoryResultCard extends StatelessWidget {
-  const _RegulatoryResultCard({
-    required this.item,
-    required this.onOpen,
-  });
+  const _RegulatoryResultCard({required this.item, required this.onOpen});
 
   final BularioRecord item;
   final VoidCallback onOpen;
