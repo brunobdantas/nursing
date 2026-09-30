@@ -544,6 +544,16 @@ class _ProfilePage extends StatelessWidget {
           child: Column(
             children: [
               ListTile(
+                leading: const Icon(Icons.offline_pin_outlined),
+                title: const Text('Base offline'),
+                subtitle: const Text(
+                  'Cobertura, versões e sincronização das bases instaladas',
+                ),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => onOpen('/data-status'),
+              ),
+              const Divider(height: 1),
+              ListTile(
                 leading: const Icon(Icons.star_outline_rounded),
                 title: const Text('Favoritos'),
                 subtitle: Text('${favorites.length} salvos'),
