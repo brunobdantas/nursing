@@ -193,11 +193,12 @@ class _BularioScreenState extends State<BularioScreen> {
           child: ListView.builder(
             itemCount: _rows.length + (_more && _rows.isNotEmpty ? 1 : 0),
             itemBuilder: (context, index) {
-              if (index == _rows.length)
+              if (index == _rows.length) {
                 return TextButton(
                   onPressed: _loading ? null : () => _load(append: true),
                   child: const Text('Carregar mais'),
                 );
+              }
               final row = _rows[index];
               return ListTile(
                 title: Text(row.name),
@@ -272,19 +273,21 @@ class _BularioDetailScreenState extends State<BularioDetailScreen> {
     final values = (prefs.getStringList('bulario-favorites') ?? []).toSet();
     if (!values.add(widget.record.id)) values.remove(widget.record.id);
     await prefs.setStringList('bulario-favorites', values.toList());
-    if (mounted)
+    if (mounted) {
       setState(() {
         _favorite = values.contains(widget.record.id);
+    }
       });
   }
 
   Future<void> _save() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_noteKey, _notes.text);
-    if (mounted)
+    if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Nota salva neste dispositivo')),
       );
+    }
   }
 
   Widget _field(String label, String value) => Padding(
@@ -384,24 +387,27 @@ class _BularioDetailScreenState extends State<BularioDetailScreen> {
             FutureBuilder<List<BularioRecord>>(
               future: _history,
               builder: (context, snapshot) {
-                if (snapshot.hasError)
+                if (snapshot.hasError) {
                   return const Center(
                     child: Text('Não foi possível carregar o histórico.'),
                   );
-                if (!snapshot.hasData)
+                }
+                if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
+                }
                 final records = snapshot.data!;
                 return ListView.builder(
                   padding: const EdgeInsets.all(16),
                   itemCount: records.length + 1,
                   itemBuilder: (context, i) {
-                    if (i == 0)
+                    if (i == 0) {
                       return Padding(
                         padding: const EdgeInsets.only(bottom: 16),
                         child: Text(
                           '${records.length} registros do mesmo processo. A ordem segue a exportação; não indica vigência da bula.',
                         ),
                       );
+                    }
                     final record = records[i - 1];
                     return Card(
                       child: ExpansionTile(
