@@ -380,6 +380,26 @@ final class ClinicalDatabase {
     return (count ?? 0) > 0 && await getContentVersion() != null;
   }
 
+  Future<Map<String, int>> contentStats() async {
+    final db = await database;
+    Future<int> count(String table) async {
+      return Sqflite.firstIntValue(
+            await db.rawQuery('SELECT COUNT(*) FROM $table'),
+          ) ??
+          0;
+    }
+
+    return <String, int>{
+      'activeIngredients': await count('active_ingredient'),
+      'medications': await count('medication_product'),
+      'presentations': await count('presentation'),
+      'administrationGuidance': await count('administration_guidance'),
+      'incompatibilities': await count('incompatibility'),
+      'professionalLeaflets': await count('professional_leaflet'),
+      'leafletLinks': await count('medication_leaflet_link'),
+    };
+  }
+
   Future<void> replaceClinicalRelease(ClinicalSyncRelease release) async {
     final db = await database;
     await db.transaction((txn) async {
