@@ -89,6 +89,19 @@ def test_cmed_workbook_accepts_deep_header_and_column_variants() -> None:
     assert frame.iloc[0]["REGISTRO"] == "101160143"
     assert frame.iloc[0]["APRESENTACAO"].startswith("250 MG / 5 ML")
 
+def test_cmed_portal_prefers_current_pmc_filename_over_pmvg() -> None:
+    page = (
+        '<a href="./arquivos/lista_PMVG_20260923_222937320.xlsx/@@download/file">'
+        'PMVG - xls</a>'
+        '<a href="./arquivos/lista_PMC_20260923_222937320.xlsx/@@download/file">'
+        'PMC - xls</a>'
+    )
+
+    assert _latest_xlsx_url(page).endswith(
+        "lista_PMC_20260923_222937320.xlsx/@@download/file"
+    )
+
+
 def test_cmed_portal_download_link_accepts_download_suffix() -> None:
     page = (
         '<a href="./arquivos/xls_conformidade_site_20260909_222937320.xlsx/'
