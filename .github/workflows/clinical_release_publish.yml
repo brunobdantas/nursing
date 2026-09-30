@@ -92,7 +92,7 @@ jobs:
         run: python scripts/etl_bulario.py
 
       - name: Preserve Bulário source snapshots and coverage report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: anvisa-bulario-catalogue
           path: backend/data/raw/bulario/
