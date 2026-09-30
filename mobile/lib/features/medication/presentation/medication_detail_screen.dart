@@ -644,6 +644,15 @@ class _OfficialLeafletSection extends StatelessWidget {
                   icon: const Icon(Icons.article_outlined),
                   label: const Text('LER REFERÊNCIAS NO APLICATIVO'),
                 ),
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  key: const ValueKey<String>('open-offline-anvisa-record'),
+                  onPressed: () => context.push(
+                    '/bulario?q=${Uri.encodeQueryComponent(registration)}',
+                  ),
+                  icon: const Icon(Icons.offline_pin_outlined),
+                  label: const Text('ABRIR CADASTRO ANVISA OFFLINE'),
+                ),
               ],
             ],
           ),
