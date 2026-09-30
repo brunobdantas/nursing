@@ -627,10 +627,9 @@ class _OfficialLeafletSection extends StatelessWidget {
               const SizedBox(height: 10),
               Text(
                 hasLeaflet
-                    ? 'Use esta opção para consultar a referência oficial da '
-                          'Anvisa do produto quando precisar conferir a bula '
-                          'regulatória específica. O conteúdo estruturado '
-                          'acima permanece disponível offline.'
+                    ? 'Consulte o cadastro Anvisa e as referências em texto '
+                          'diretamente no aplicativo. O catálogo Anvisa ainda '
+                          'não inclui o texto integral da bula.'
                     : 'Este registro não possui número Anvisa suficiente para '
                           'localizar automaticamente a bula profissional.',
                 style: theme.textTheme.bodyMedium?.copyWith(
@@ -643,7 +642,7 @@ class _OfficialLeafletSection extends StatelessWidget {
                   key: const ValueKey<String>('open-professional-leaflet'),
                   onPressed: () => _openLeaflet(context),
                   icon: const Icon(Icons.article_outlined),
-                  label: const Text('CONSULTAR FONTE OFICIAL ANVISA'),
+                  label: const Text('LER REFERÊNCIAS NO APLICATIVO'),
                 ),
               ],
             ],
