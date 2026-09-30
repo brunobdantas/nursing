@@ -36,6 +36,13 @@ from scripts.entity_resolution import normalize_name
 
 
 CMED_INDEX_URL = "https://www.gov.br/anvisa/pt-br/assuntos/medicamentos/cmed/precos"
+# Last known-good public PMC workbooks. These are used only when the current
+# official page points to a temporarily broken asset. The retained source_url
+# makes the fallback explicit in provenance instead of pretending it is current.
+CMED_LAST_KNOWN_GOOD_URLS = (
+    "https://www.gov.br/anvisa/pt-br/assuntos/medicamentos/cmed/precos/arquivos/"
+    "xls_conformidade_site_20260710_124824323.xlsx/@@download/file",
+)
 SOURCE_CODE = "CMED"
 UUID_NAMESPACE = uuid.UUID("62bb6697-e111-4c2f-9ea4-f3fef52f9f22")
 
@@ -247,6 +254,36 @@ def load_cmed_dataframe(content: bytes) -> pd.DataFrame:
     )
 
 
+async def _fetch_cmed_workbook(
+    client: httpx.AsyncClient,
+    source_url: str,
+) -> tuple[str, bytes, dict[str, str]]:
+    last_status: int | None = None
+    for candidate_url in _download_variants(source_url):
+        response = await client.get(candidate_url)
+        last_status = response.status_code
+        if response.status_code == 404:
+            continue
+        response.raise_for_status()
+        content = response.content
+        content_length = response.headers.get("content-length")
+        if content_length is not None and len(content) != int(content_length):
+            raise RuntimeError(
+                "Incomplete CMED download: "
+                f"received {len(content)} of {content_length} bytes"
+            )
+        if len(content) < 100_000 or not content.startswith(b"PK"):
+            raise RuntimeError("CMED response is not a complete XLSX workbook")
+        # Parsing is a stronger integrity gate than filename/content-type alone.
+        load_cmed_dataframe(content)
+        return candidate_url, content, dict(response.headers)
+
+    raise RuntimeError(
+        "CMED workbook link was discovered but every download variant "
+        f"returned 404 (last_status={last_status})"
+    )
+
+
 async def _download_cmed() -> tuple[str, bytes, dict[str, str]]:
     override = os.getenv("CMED_XLSX_URL")
     timeout = httpx.Timeout(180.0, connect=30.0)
@@ -267,41 +304,33 @@ async def _download_cmed() -> tuple[str, bytes, dict[str, str]]:
                     page.raise_for_status()
                     source_url = _latest_xlsx_url(page.text)
 
-                response = None
-                resolved_url = source_url
-                for candidate_url in _download_variants(source_url):
-                    candidate = await client.get(candidate_url)
-                    if candidate.status_code == 404:
-                        continue
-                    candidate.raise_for_status()
-                    response = candidate
-                    resolved_url = candidate_url
-                    break
-                if response is None:
-                    raise RuntimeError(
-                        "CMED workbook link was discovered but every download "
-                        "variant returned 404"
-                    )
-
-                content = response.content
-                content_length = response.headers.get("content-length")
-                if content_length is not None and len(content) != int(content_length):
-                    raise RuntimeError(
-                        "Incomplete CMED download: "
-                        f"received {len(content)} of {content_length} bytes"
-                    )
-                if len(content) < 100_000 or not content.startswith(b"PK"):
-                    raise RuntimeError(
-                        "CMED response is not a complete XLSX workbook"
-                    )
-                return resolved_url, content, dict(response.headers)
+                return await _fetch_cmed_workbook(client, source_url)
         except (httpx.HTTPError, RuntimeError) as exc:
             last_error = exc
             if attempt == 4:
                 break
             await asyncio.sleep(attempt * 2)
 
-    raise RuntimeError("Could not download complete CMED workbook after retries") from last_error
+    # The current ANVISA page has occasionally published a new PMC link before
+    # the file itself became downloadable. Keep the pipeline operational with a
+    # known-good official workbook, while preserving its older URL in provenance.
+    fallback_error: Exception | None = None
+    for fallback_url in CMED_LAST_KNOWN_GOOD_URLS:
+        try:
+            async with httpx.AsyncClient(
+                timeout=timeout,
+                follow_redirects=True,
+                headers=headers,
+            ) as client:
+                return await _fetch_cmed_workbook(client, fallback_url)
+        except (httpx.HTTPError, RuntimeError, ValueError) as exc:
+            fallback_error = exc
+
+    terminal_error = fallback_error or last_error
+    raise RuntimeError(
+        "Could not download a validated CMED workbook from the current source "
+        "or the last-known-good official fallback"
+    ) from terminal_error
 
 
 def _match_product(
