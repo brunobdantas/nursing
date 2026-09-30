@@ -79,6 +79,7 @@ class BularioRepository {
     int offset = 0,
     bool documents = false,
     List<String>? favorites,
+    int limit = 50,
   }) async {
     if (favorites != null && favorites.isEmpty) return [];
     final db = await database;
@@ -106,7 +107,7 @@ class BularioRepository {
       where: where.isEmpty ? null : where.join(' AND '),
       whereArgs: args,
       orderBy: documents ? 'ordinal DESC' : 'name COLLATE NOCASE, id',
-      limit: 50,
+      limit: limit,
       offset: offset,
     );
     return rows
@@ -117,6 +118,28 @@ class BularioRepository {
           ),
         )
         .toList();
+  }
+
+  Future<BularioRecord?> byRegistration(String registration) async {
+    final digits = registration.replaceAll(RegExp(r'\D'), '');
+    if (digits.isEmpty) {
+      return null;
+    }
+    final rows = await (await database).query(
+      'products',
+      where: 'registration = ?',
+      whereArgs: <Object>[digits],
+      orderBy: 'name COLLATE NOCASE, id',
+      limit: 1,
+    );
+    if (rows.isEmpty) {
+      return null;
+    }
+    final row = rows.single;
+    return BularioRecord(
+      row['id'].toString(),
+      jsonDecode(row['payload'] as String) as Map<String, dynamic>,
+    );
   }
 
   Future<List<BularioRecord>> forProcess(String process) async {
