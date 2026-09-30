@@ -276,8 +276,8 @@ class _BularioDetailScreenState extends State<BularioDetailScreen> {
     if (mounted) {
       setState(() {
         _favorite = values.contains(widget.record.id);
-    }
       });
+    }
   }
 
   Future<void> _save() async {
