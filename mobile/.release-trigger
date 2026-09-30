@@ -1,5 +1,5 @@
-nursing-app 1.5.1+8
-hotfix structured offline professional leaflets
-max gzip payload compression and byte-level first-sync progress
-SQLite TEXT leaflet sections with native local rendering
-2026-09-28 final
+nursing-app 1.6.1+10
+unified clinical + ANVISA offline search
+offline coverage dashboard and ANVISA record deep links
+resilient CMED source fallback with provenance
+2026-09-30 final
