@@ -33,10 +33,10 @@ class _GlobalClinicalSearchScreenState
 
   static const _actions = <_SearchAction>[
     _SearchAction(
-      'Bulário Anvisa',
-      'Catálogo offline',
+      'Bulas profissionais',
+      'Textos em português offline',
       Icons.menu_book_outlined,
-      '/bulario',
+      '/leaflets',
       _GlobalSearchFilter.medications,
     ),
     _SearchAction(
@@ -291,13 +291,13 @@ class _GlobalClinicalSearchScreenState
             if (showMedications)
               ListTile(
                 leading: const Icon(Icons.menu_book_outlined),
-                title: const Text('Pesquisar no Bulário Anvisa offline'),
+                title: const Text('Pesquisar nas bulas profissionais'),
                 subtitle: const Text(
-                  'Produtos e registros documentais brasileiros',
+                  'Textos do fabricante em português, disponíveis offline',
                 ),
                 onTap: () => context.push(
                   Uri(
-                    path: '/bulario',
+                    path: '/leaflets',
                     queryParameters: {'q': _controller.text.trim()},
                   ).toString(),
                 ),

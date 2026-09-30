@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../leaflets/leaflet_screens.dart';
 import 'bulario_repository.dart';
 
 class BularioScreen extends StatefulWidget {
@@ -91,7 +92,7 @@ class _BularioScreenState extends State<BularioScreen> {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('Bulário Anvisa')),
+    appBar: AppBar(title: const Text('Cadastro Anvisa')),
     body: Column(
       children: [
         Padding(
@@ -374,6 +375,11 @@ class _BularioDetailScreenState extends State<BularioDetailScreen> {
                     'Situação administrativa',
                     r.data['document_status'].toString(),
                   ),
+                if (!widget.documents) FilledButton.icon(
+                  onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => LeafletLibraryScreen(initialQuery: r.name))),
+                  icon: const Icon(Icons.article_outlined),
+                  label: const Text('Buscar texto de bula na coleção'),
+                ),
                 const Card(
                   child: Padding(
                     padding: EdgeInsets.all(16),

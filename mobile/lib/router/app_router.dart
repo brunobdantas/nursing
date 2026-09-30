@@ -10,6 +10,7 @@ import '../features/calculator/presentation/fluid_calculator_screens.dart';
 import '../features/home/data/favorite_medication_repository.dart';
 import '../features/home/data/recent_medication_repository.dart';
 import '../features/home/presentation/home_screen.dart';
+import '../features/leaflets/leaflet_screens.dart';
 import '../features/medication/data/medication_repository.dart';
 import '../features/medication/presentation/medication_detail_screen.dart';
 import '../features/search/presentation/search_screen.dart';
@@ -63,6 +64,10 @@ final GoRouter appRouter = GoRouter(
       name: 'global-search',
       builder: (context, state) =>
           GlobalClinicalSearchScreen(repository: medicationRepository),
+    ),
+    GoRoute(
+      path: '/leaflets',
+      builder: (context, state) => LeafletLibraryScreen(initialQuery: state.uri.queryParameters['q'] ?? ''),
     ),
     GoRoute(
       path: '/bulario',

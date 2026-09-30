@@ -1,7 +1,7 @@
 name: nursing_clinical_core
 description: Intelligent drug reference and deterministic clinical calculation core for nursing.
 publish_to: none
-version: 1.6.0+9
+version: 1.7.0+10
 
 environment:
   sdk: ">=3.13.0 <4.0.0"
@@ -29,6 +29,7 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
+    - assets/leaflets/professional.json.gz
     - assets/bulario/catalogue-v1.sqlite.gz.part1
     - assets/bulario/catalogue-v1.sqlite.gz.part2
 

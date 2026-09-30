@@ -189,6 +189,22 @@ class _WorkspaceHome extends StatelessWidget {
           style: theme.textTheme.headlineSmall,
         ),
         const SizedBox(height: 12),
+        Card(
+          color: theme.colorScheme.primaryContainer,
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Row(children: [Icon(Icons.offline_pin_outlined), SizedBox(width: 8), Text('BULAS NO APLICATIVO')]),
+              const SizedBox(height: 10),
+              Text('Consulte. Encontre. Leia.', style: theme.textTheme.headlineSmall),
+              const SizedBox(height: 8),
+              const Text('Bulas profissionais em português, com índice por assunto e pesquisa no texto. Disponíveis sem conexão.'),
+              const SizedBox(height: 14),
+              FilledButton.icon(onPressed: () => onOpen('/leaflets'), icon: const Icon(Icons.menu_book_outlined), label: const Text('Abrir bulas profissionais')),
+            ]),
+          ),
+        ),
+        const SizedBox(height: 12),
         _SyncPill(status: syncStatus),
         const SizedBox(height: 16),
         InkWell(
@@ -233,8 +249,8 @@ class _WorkspaceHome extends StatelessWidget {
             ),
             _ModuleTile(
               icon: Icons.menu_book_outlined,
-              label: 'Bulário Anvisa',
-              onTap: () => onOpen('/bulario'),
+              label: 'Bulas profissionais',
+              onTap: () => onOpen('/leaflets'),
             ),
             _ModuleTile(
               icon: Icons.calculate_outlined,
@@ -319,7 +335,13 @@ class _ExplorePage extends StatelessWidget {
         '/search',
       ),
       _ExploreItem(
-        'Bulário Anvisa',
+        'Bulas profissionais',
+        'Textos em português • leitura offline por assunto',
+        Icons.article_outlined,
+        '/leaflets',
+      ),
+      _ExploreItem(
+        'Cadastro Anvisa',
         'Catálogo brasileiro e histórico offline',
         Icons.menu_book_outlined,
         '/bulario',
@@ -538,6 +560,22 @@ class _ProfilePage extends StatelessWidget {
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 22),
+        Card(
+          color: theme.colorScheme.primaryContainer,
+          child: Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Row(children: [Icon(Icons.offline_pin_outlined), SizedBox(width: 8), Text('BULAS NO APLICATIVO')]),
+              const SizedBox(height: 10),
+              Text('Consulte. Encontre. Leia.', style: theme.textTheme.headlineSmall),
+              const SizedBox(height: 8),
+              const Text('Bulas profissionais em português, com índice por assunto e pesquisa no texto. Disponíveis sem conexão.'),
+              const SizedBox(height: 14),
+              FilledButton.icon(onPressed: () => onOpen('/leaflets'), icon: const Icon(Icons.menu_book_outlined), label: const Text('Abrir bulas profissionais')),
+            ]),
+          ),
+        ),
+        const SizedBox(height: 12),
         _SyncPill(status: syncStatus),
         const SizedBox(height: 12),
         Card(
