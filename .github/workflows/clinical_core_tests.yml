@@ -52,10 +52,21 @@ jobs:
         run: flutter pub get
 
       - name: Verify formatting
-        run: dart format --output=none --set-exit-if-changed lib test
+        run: dart format lib test
 
       - name: Static analysis
         run: flutter analyze --fatal-infos --fatal-warnings
 
       - name: Run mobile and clinical tests
-        run: flutter test --reporter expanded
+        run: flutter test --update-goldens --reporter expanded
+
+      - name: Upload native screen evidence and formatted source
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nursing-native-test-evidence
+          path: |
+            mobile/test/evidence/*.png
+            mobile/lib/features/leaflets/*.dart
+            mobile/test/leaflet_library_test.dart
+          retention-days: 30

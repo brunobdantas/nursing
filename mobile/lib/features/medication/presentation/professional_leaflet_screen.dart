@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../bulario/bulario_screen.dart';
+import '../../leaflets/leaflet_screens.dart';
 import '../data/medication_models.dart';
 
 /// Native text reader only. Never opens a PDF, WebView or external portal.
@@ -14,6 +15,12 @@ class ProfessionalLeafletScreen extends StatelessWidget {
     body: ListView(
       padding: const EdgeInsets.all(20),
       children: [
+        FilledButton.icon(
+          onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const LeafletLibraryScreen())),
+          icon: const Icon(Icons.article_outlined),
+          label: const Text('Consultar bulas profissionais em português'),
+        ),
+        const SizedBox(height: 12),
         FilledButton.icon(
           onPressed: () => Navigator.of(context).push(
             MaterialPageRoute<void>(
