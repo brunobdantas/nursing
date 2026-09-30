@@ -25,6 +25,7 @@ class _Repository extends BularioRepository {
     int offset = 0,
     bool documents = false,
     List<String>? favorites,
+    int limit = 50,
   }) async => documents ? [] : [record];
 
   @override
