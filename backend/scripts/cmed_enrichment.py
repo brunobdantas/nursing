@@ -141,15 +141,53 @@ def _dosage_form_code(name: str) -> str:
 
 
 def _latest_xlsx_url(page_html: str) -> str:
-    candidates = re.findall(
-        r'href=["\']([^"\']*xls_conformidade_site_[^"\']*\.xlsx[^"\']*)["\']',
+    """Resolve the public PMC workbook without depending on one legacy filename.
+
+    ANVISA changed the public filename from xls_conformidade_site_* to
+    lista_PMC_* in 2026. Discovery accepts any XLSX link but strongly prefers
+    the consumer-price (PMC) file and rejects PMVG/government variants when a
+    PMC candidate exists.
+    """
+    hrefs = re.findall(
+        r'href=["\']([^"\']+\.xlsx(?:/@@download/file)?[^"\']*)["\']',
         page_html,
         flags=re.IGNORECASE,
     )
+    candidates = [html.unescape(item) for item in hrefs]
     if not candidates:
-        raise RuntimeError("Could not discover the current CMED XLSX on the official page")
-    decoded = [html.unescape(item) for item in candidates]
-    return urljoin(CMED_INDEX_URL, sorted(decoded)[-1])
+        raise RuntimeError(
+            "Could not discover an XLSX link on the official CMED page"
+        )
+
+    def score(value: str) -> tuple[int, str]:
+        lowered = value.casefold()
+        priority = 0
+        if "lista_pmc_" in lowered:
+            priority += 100
+        if "xls_conformidade_site_" in lowered:
+            priority += 90
+        if "pmc" in lowered:
+            priority += 20
+        if "pmvg" in lowered or "conformidade_gov" in lowered:
+            priority -= 100
+        stamp = re.findall(r"20\d{6}(?:_\d+)?", lowered)
+        return priority, stamp[-1] if stamp else lowered
+
+    selected = max(candidates, key=score)
+    return urljoin(CMED_INDEX_URL, selected)
+
+
+def _download_variants(source_url: str) -> list[str]:
+    variants = [source_url]
+    suffixes = ("/@@download/file", "/%40%40download/file")
+    for suffix in suffixes:
+        if source_url.endswith(suffix):
+            stripped = source_url[: -len(suffix)]
+            if stripped not in variants:
+                variants.append(stripped)
+    if not any(source_url.endswith(suffix) for suffix in suffixes):
+        variants.append(source_url.rstrip("/") + "/@@download/file")
+    return variants
 
 
 def _canonical_cmed_header(value: Any) -> str:
@@ -229,8 +267,22 @@ async def _download_cmed() -> tuple[str, bytes, dict[str, str]]:
                     page.raise_for_status()
                     source_url = _latest_xlsx_url(page.text)
 
-                response = await client.get(source_url)
-                response.raise_for_status()
+                response = None
+                resolved_url = source_url
+                for candidate_url in _download_variants(source_url):
+                    candidate = await client.get(candidate_url)
+                    if candidate.status_code == 404:
+                        continue
+                    candidate.raise_for_status()
+                    response = candidate
+                    resolved_url = candidate_url
+                    break
+                if response is None:
+                    raise RuntimeError(
+                        "CMED workbook link was discovered but every download "
+                        "variant returned 404"
+                    )
+
                 content = response.content
                 content_length = response.headers.get("content-length")
                 if content_length is not None and len(content) != int(content_length):
@@ -238,7 +290,11 @@ async def _download_cmed() -> tuple[str, bytes, dict[str, str]]:
                         "Incomplete CMED download: "
                         f"received {len(content)} of {content_length} bytes"
                     )
-                return source_url, content, dict(response.headers)
+                if len(content) < 100_000 or not content.startswith(b"PK"):
+                    raise RuntimeError(
+                        "CMED response is not a complete XLSX workbook"
+                    )
+                return resolved_url, content, dict(response.headers)
         except (httpx.HTTPError, RuntimeError) as exc:
             last_error = exc
             if attempt == 4:
