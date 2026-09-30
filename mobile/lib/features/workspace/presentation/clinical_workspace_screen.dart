@@ -122,7 +122,7 @@ class _ClinicalWorkspaceScreenState extends State<ClinicalWorkspaceScreen> {
         actions: [
           IconButton(
             tooltip: 'Busca global',
-            onPressed: () => _open('/global-search'),
+            onPressed: () => _open('/search'),
             icon: const Icon(Icons.search_rounded),
           ),
           IconButton(
@@ -194,7 +194,7 @@ class _WorkspaceHome extends StatelessWidget {
         InkWell(
           key: const ValueKey<String>('workspace-global-search'),
           borderRadius: BorderRadius.circular(18),
-          onTap: () => onOpen('/global-search'),
+          onTap: () => onOpen('/search'),
           child: Container(
             height: ClinicalTheme.searchHeight,
             padding: const EdgeInsets.symmetric(horizontal: 18),
@@ -208,7 +208,7 @@ class _WorkspaceHome extends StatelessWidget {
                 Icon(Icons.search_rounded, color: theme.colorScheme.primary),
                 const SizedBox(width: 12),
                 const Expanded(
-                  child: Text('Buscar medicamentos, ferramentas e conteúdos'),
+                  child: Text('Buscar no Nursing + catálogo oficial Anvisa'),
                 ),
                 const Icon(Icons.chevron_right_rounded),
               ],
@@ -578,7 +578,7 @@ class _ProfilePage extends StatelessWidget {
         const Card(
           child: ListTile(
             leading: Icon(Icons.verified_user_outlined),
-            title: Text('Nursing 1.5.1'),
+            title: Text('Nursing 1.6.1'),
             subtitle: Text(
               'Apoio à decisão. Não substitui prescrição, protocolo '
               'institucional ou julgamento clínico.',
