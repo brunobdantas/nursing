@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../core/network/api_config.dart';
 import '../core/storage/clinical_database.dart';
 import '../core/sync/sync_service.dart';
+import '../features/bulario/bulario_repository.dart';
 import '../features/bulario/bulario_screen.dart';
 import '../features/calculator/presentation/calculator_screen.dart';
 import '../features/calculator/presentation/fluid_calculator_screens.dart';
@@ -72,8 +73,10 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/search',
       name: 'search',
-      builder: (context, state) =>
-          SearchScreen(repository: medicationRepository),
+      builder: (context, state) => SearchScreen(
+        repository: medicationRepository,
+        bularioRepository: BularioRepository.instance,
+      ),
     ),
     GoRoute(
       path: '/assistant',
