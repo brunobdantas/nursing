@@ -17,7 +17,8 @@ class OfflineDataStatusScreen extends StatefulWidget {
   final BularioRepository bularioRepository;
 
   @override
-  State<OfflineDataStatusScreen> createState() => _OfflineDataStatusScreenState();
+  State<OfflineDataStatusScreen> createState() =>
+      _OfflineDataStatusScreenState();
 }
 
 class _OfflineDataStatusScreenState extends State<OfflineDataStatusScreen> {
@@ -183,14 +184,8 @@ class _OfflineDataStatusScreenState extends State<OfflineDataStatusScreen> {
               icon: Icons.medical_information_outlined,
               title: 'Conteúdo clínico',
               rows: <(String, String)>[
-                (
-                  'Medicamentos',
-                  '${_clinicalStats?['medications'] ?? 0}',
-                ),
-                (
-                  'Apresentações',
-                  '${_clinicalStats?['presentations'] ?? 0}',
-                ),
+                ('Medicamentos', '${_clinicalStats?['medications'] ?? 0}'),
+                ('Apresentações', '${_clinicalStats?['presentations'] ?? 0}'),
                 (
                   'Orientações de administração',
                   '${_clinicalStats?['administrationGuidance'] ?? 0}',
@@ -202,16 +197,16 @@ class _OfflineDataStatusScreenState extends State<OfflineDataStatusScreen> {
               ],
             ),
             const SizedBox(height: 18),
-            Text('Catálogo regulatório Anvisa', style: theme.textTheme.titleLarge),
+            Text(
+              'Catálogo regulatório Anvisa',
+              style: theme.textTheme.titleLarge,
+            ),
             const SizedBox(height: 10),
             _StatsCard(
               icon: Icons.account_balance_outlined,
               title: 'Cadastro oficial incorporado ao APK',
               rows: <(String, String)>[
-                (
-                  'Produtos',
-                  '${_bularioSummary?['products'] ?? 0}',
-                ),
+                ('Produtos', '${_bularioSummary?['products'] ?? 0}'),
                 (
                   'Registros documentais',
                   '${_bularioSummary?['document_records'] ?? 0}',
