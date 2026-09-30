@@ -16,6 +16,7 @@ import '../features/medication/presentation/medication_detail_screen.dart';
 import '../features/search/presentation/search_screen.dart';
 import '../features/workspace/presentation/clinical_tools_screens.dart';
 import '../features/workspace/presentation/clinical_workspace_screen.dart';
+import '../features/workspace/presentation/offline_data_status_screen.dart';
 import '../features/workspace/presentation/productivity_screens.dart';
 import '../features/workspace/presentation/recent_whitebook_features.dart';
 
@@ -64,6 +65,15 @@ final GoRouter appRouter = GoRouter(
       name: 'global-search',
       builder: (context, state) =>
           GlobalClinicalSearchScreen(repository: medicationRepository),
+    ),
+    GoRoute(
+      path: '/data-status',
+      name: 'data-status',
+      builder: (context, state) => OfflineDataStatusScreen(
+        database: clinicalDatabase,
+        syncCoordinator: syncService,
+        bularioRepository: BularioRepository.instance,
+      ),
     ),
     GoRoute(
       path: '/bulario',
